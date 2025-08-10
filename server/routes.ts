@@ -149,6 +149,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe subscription routes
+  app.post('/api/create-subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.email) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { priceId } = req.body;
+
+      // Create or retrieve Stripe customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+        });
+        customerId = customer.id;
+        await storage.updateUser(userId, { stripeCustomerId: customerId });
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: 'price_1QaJ6OL1V6ZkZRf2ZfRp2w3p', // Monthly subscription price ID from Stripe dashboard
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${req.headers.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.origin}/subscribe`,
+        metadata: {
+          userId: userId,
+        },
+      });
+
+      res.json({ sessionId: session.id });
+    } catch (error) {
+      console.error('Subscription creation error:', error);
+      res.status(500).json({ message: 'Failed to create subscription' });
+    }
+  });
+
+  // Stripe webhook handler
+  app.post('/api/stripe-webhook', async (req, res) => {
+    const sig = req.headers['stripe-signature'] as string;
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
+      );
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return res.status(400).send(`Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+
+    // Handle the event
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          const session = event.data.object;
+          if (session.mode === 'subscription') {
+            const userId = session.metadata?.userId;
+            if (userId) {
+              await storage.updateUser(userId, {
+                stripeSubscriptionId: session.subscription as string,
+                subscriptionStatus: 'active',
+                lettersThisMonth: 0, // Reset letter count
+              });
+            }
+          }
+          break;
+
+        case 'customer.subscription.updated':
+          const subscription = event.data.object;
+          // Find user by customer ID and update status
+          const users = await storage.getAllUsers();
+          const user = users.find((u: any) => u.stripeCustomerId === subscription.customer);
+          if (user) {
+            await storage.updateUser(user.id, {
+              subscriptionStatus: subscription.status === 'active' ? 'active' : 'inactive',
+            });
+          }
+          break;
+
+        case 'customer.subscription.deleted':
+          const deletedSubscription = event.data.object;
+          const allUsers = await storage.getAllUsers();
+          const canceledUser = allUsers.find((u: any) => u.stripeCustomerId === deletedSubscription.customer);
+          if (canceledUser) {
+            await storage.updateUser(canceledUser.id, {
+              subscriptionStatus: 'canceled',
+              stripeSubscriptionId: null,
+            });
+          }
+          break;
+
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Error handling webhook:', error);
+      res.status(500).json({ error: 'Webhook handler failed' });
+    }
+  });
+
   // Letter routes
   app.post('/api/letters', isAuthenticated, async (req: any, res) => {
     try {
@@ -180,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...letterData,
         userId,
         status: contentFilter.requiresReview ? 'pending' : 'approved',
-      });
+      } as any);
 
       // Create content filter record with detailed reasons
       await storage.createContentFilter({
@@ -308,9 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: [{
           price_data: {
             currency: 'usd',
-            product: {
-              name: 'Monthly Letter Service',
-            },
+            product: 'prod_monthly_letters',
             unit_amount: 999, // $9.99
             recurring: {
               interval: 'month'
@@ -426,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Test email sent successfully" });
     } catch (error) {
       console.error("Error sending test email:", error);
-      res.status(500).json({ message: "Failed to send test email", error: error.message });
+      res.status(500).json({ message: "Failed to send test email", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

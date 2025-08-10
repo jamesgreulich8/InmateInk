@@ -21,9 +21,11 @@ export interface IStorage {
   updateUserStripeInfo(id: string, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
   updateUserSubscriptionStatus(id: string, status: string): Promise<User>;
   updateUserLetterCount(id: string, count: number): Promise<User>;
+  updateUser(userId: string, data: Partial<User>): Promise<void>;
+  getAllUsers(): Promise<User[]>;
   
   // Letter operations
-  createLetter(letter: InsertLetter): Promise<Letter>;
+  createLetter(letter: InsertLetter & { userId: string }): Promise<Letter>;
   getLettersByUserId(userId: string): Promise<Letter[]>;
   getLetter(id: string): Promise<Letter | undefined>;
   updateLetterStatus(id: string, status: string, rejectionReason?: string): Promise<Letter>;
@@ -111,8 +113,19 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUser(userId: string, data: Partial<User>): Promise<void> {
+    await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
   // Letter operations
-  async createLetter(letter: InsertLetter): Promise<Letter> {
+  async createLetter(letter: InsertLetter & { userId: string }): Promise<Letter> {
     const [newLetter] = await db.insert(letters).values(letter).returning();
     return newLetter;
   }

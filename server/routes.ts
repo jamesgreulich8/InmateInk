@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertLetterSchema } from "@shared/schema";
-import { emailService } from './emailService';
+import emailService from './emailService';
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -236,6 +236,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 subscriptionStatus: 'active',
                 lettersThisMonth: 0, // Reset letter count
               });
+              
+              // Send subscription confirmation email
+              try {
+                const user = await storage.getUser(userId);
+                if (user && user.email) {
+                  await emailService.sendSubscriptionConfirmation(user);
+                }
+              } catch (emailError) {
+                console.error('Failed to send subscription confirmation email:', emailError);
+              }
+            }
+          } else if (session.mode === 'payment' && session.metadata?.type === 'single_letter') {
+            // Handle single letter payment completion
+            const userId = session.metadata?.userId;
+            if (userId) {
+              try {
+                const user = await storage.getUser(userId);
+                if (user && user.email) {
+                  await emailService.sendPaymentConfirmation(user);
+                }
+              } catch (emailError) {
+                console.error('Failed to send payment confirmation email:', emailError);
+              }
             }
           }
           break;
@@ -308,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: 'Single Letter Service',
                 description: 'Send one letter to your loved one'
               },
-              unit_amount: 399, // $3.99
+              unit_amount: 0, // $0.00 for testing
             },
             quantity: 1,
           },

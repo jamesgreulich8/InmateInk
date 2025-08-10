@@ -1,13 +1,7 @@
 import nodemailer from 'nodemailer';
-import { User, Letter } from '../shared/schema';
+import type { Letter, User } from '@shared/schema';
 
-interface EmailNotification {
-  to: string;
-  subject: string;
-  html: string;
-}
-
-// Create reusable transporter object using GMAIL SMTP transport
+// Configure Gmail transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -16,23 +10,33 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const emailService = {
-  // Send letter status update to user
+export interface EmailNotification {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export const emailService = {
+  // Send letter status update notifications
   async sendStatusUpdate(user: User, letter: Letter, newStatus: string, rejectionReason?: string) {
     if (!user.email) return;
 
-    const statusMessages = {
-      pending: 'Your letter is being reviewed and will be processed soon.',
-      approved: 'Your letter has been approved and is being prepared for delivery.',
+    const statusMessages: Record<string, string> = {
+      approved: 'Your letter has been approved and will be printed soon.',
+      rejected: `Your letter was rejected. Reason: ${rejectionReason || 'Content did not meet facility guidelines.'}`,
+      printed: 'Your letter has been printed and is being prepared for mailing.',
+      mailed: 'Your letter has been mailed to the facility.',
       delivered: 'Your letter has been successfully delivered to the recipient.',
-      rejected: `Your letter could not be processed. ${rejectionReason || 'Please review our content guidelines and try again.'}`,
+      pending: 'Your letter is being reviewed and will be processed soon.',
     };
 
-    const statusColors = {
-      pending: '#F59E0B',
-      approved: '#10B981', 
-      delivered: '#059669',
+    const statusColors: Record<string, string> = {
+      approved: '#10B981',
       rejected: '#EF4444',
+      printed: '#3B82F6',
+      mailed: '#8B5CF6',
+      delivered: '#059669',
+      pending: '#F59E0B',
     };
 
     const subject = `Letter Update: ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)} - #${letter.id.slice(-8)}`;
@@ -244,6 +248,22 @@ ${letter.content}
           </div>
         </div>
 
+        <div style="background: white; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px;">Pricing Options</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="text-align: center; padding: 16px; background: #F9FAFB; border-radius: 6px;">
+              <h3 style="margin: 0 0 8px 0; color: #111827;">Monthly Plan</h3>
+              <div style="font-size: 24px; font-weight: bold; color: #3B82F6;">$9.99</div>
+              <div style="color: #6B7280; font-size: 14px;">4 letters included</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: #F9FAFB; border-radius: 6px;">
+              <h3 style="margin: 0 0 8px 0; color: #111827;">Per Letter</h3>
+              <div style="font-size: 24px; font-weight: bold; color: #3B82F6;">$3.99</div>
+              <div style="color: #6B7280; font-size: 14px;">Pay as you go</div>
+            </div>
+          </div>
+        </div>
+
         <div style="text-align: center; padding: 20px 0;">
           <a href="${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/compose" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
@@ -266,31 +286,56 @@ ${letter.content}
     });
   },
 
-  // Send subscription confirmation email
-  async sendSubscriptionConfirmation(user: any) {
+  // Send subscription renewal reminder
+  async sendSubscriptionReminder(user: User, daysUntilRenewal: number) {
+    if (!user.email) return;
+
+    const subject = `Subscription Renewal in ${daysUntilRenewal} days`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Subscription Renewal Reminder</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #F9FAFB; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+          <h1 style="color: #111827; margin: 0 0 16px 0; font-size: 24px;">Subscription Renewal Reminder</h1>
+          <p style="margin: 0; font-size: 16px;">Your monthly subscription will renew in ${daysUntilRenewal} days. Continue sending letters to your loved ones without interruption.</p>
+        </div>
+
+        <div style="background: white; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px;">Your Plan</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 18px; font-weight: 600; color: #111827;">Monthly Letter Service</div>
+              <div style="color: #6B7280;">4 letters per month</div>
+            </div>
+            <div style="font-size: 24px; font-weight: bold; color: #3B82F6;">$9.99</div>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px 0;">
+          <a href="${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/dashboard" 
+             style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Manage Subscription
+          </a>
+        </div>
+
+        <div style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 20px;">
+          <p>To cancel or modify your subscription, visit your dashboard.<br>
+          Questions? Contact support through your account.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
     await this.sendEmail({
       to: user.email,
-      subject: "Subscription Confirmed - Inmate Mail Service",
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #16a34a;">Subscription Confirmed!</h2>
-        <p>Dear ${user.firstName} ${user.lastName}, your monthly subscription is now active.</p>
-        <p>You can now send up to 4 letters per month for $9.99/month.</p>
-        <p>Thank you for choosing our service!</p>
-      </div>`
-    });
-  },
-
-  // Send payment confirmation email
-  async sendPaymentConfirmation(user: any) {
-    await this.sendEmail({
-      to: user.email,  
-      subject: "Payment Confirmed - Ready to Send Letter",
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #16a34a;">Payment Confirmed!</h2>
-        <p>Dear ${user.firstName} ${user.lastName}, your payment has been processed.</p>
-        <p>You can now compose and send your letter from your dashboard.</p>
-        <p>Thank you for using our service!</p>
-      </div>`
+      subject,
+      html,
     });
   },
 
@@ -324,5 +369,28 @@ ${letter.content}
     }
   },
 };
+  async sendSubscriptionConfirmation(user: any) {
+    await this.sendEmail({
+      to: user.email,
+      subject: "Subscription Confirmed - Inmate Mail Service",
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #16a34a;">Subscription Confirmed!</h2>
+        <p>Dear ${user.firstName} ${user.lastName}, your monthly subscription is now active.</p>
+        <p>You can now send up to 4 letters per month for $9.99/month.</p>
+        <p>Thank you for choosing our service!</p>
+      </div>`
+    });
+  },
 
-export default emailService;
+  async sendPaymentConfirmation(user: any) {
+    await this.sendEmail({
+      to: user.email,  
+      subject: "Payment Confirmed - Ready to Send Letter",
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #16a34a;">Payment Confirmed!</h2>
+        <p>Dear ${user.firstName} ${user.lastName}, your payment has been processed.</p>
+        <p>You can now compose and send your letter from your dashboard.</p>
+        <p>Thank you for using our service!</p>
+      </div>`
+    });
+  },

@@ -180,8 +180,8 @@ export default function Subscribe() {
                 <Badge variant="outline">Flexible</Badge>
               </div>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900">$3.99</span>
-                <span className="text-gray-600 ml-2">per letter</span>
+                <span className="text-4xl font-bold text-green-600">FREE</span>
+                <span className="text-gray-600 ml-2">for testing</span>
               </div>
             </CardHeader>
             <CardContent>

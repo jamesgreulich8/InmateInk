@@ -53,10 +53,13 @@ Preferred communication style: Simple, everyday language.
 - **Compliance Standards**: Meets correctional facility requirements for mail screening
 
 ### Payment Integration
-- **Provider**: Stripe for payment processing
-- **Models**: Both subscription ($9.99/month for 4 letters) and one-time payments ($3.99 per letter)
-- **Webhooks**: Subscription status updates and payment confirmations
-- **Customer Management**: Stripe customer IDs linked to user accounts
+- **Provider**: Stripe for payment processing with full integration
+- **Subscription Model**: $9.99/month for 4 letters with automatic billing
+- **Pay-per-letter**: $3.99 per single letter with one-time checkout
+- **Dynamic Pricing**: Uses Stripe's price_data for flexible product creation
+- **Webhooks**: Automated subscription status updates and payment confirmations
+- **Customer Management**: Automatic Stripe customer creation and linking
+- **Checkout Flow**: Hosted Stripe checkout with success/cancel redirects
 
 ### Development Tooling
 - **Build System**: Vite for frontend, esbuild for backend bundling

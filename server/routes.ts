@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { priceId } = req.body;
+      const { type } = req.body;
 
       // Create or retrieve Stripe customer
       let customerId = user.stripeCustomerId;
@@ -172,13 +172,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(userId, { stripeCustomerId: customerId });
       }
 
-      // Create checkout session
+      // Create checkout session with dynamic price
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ['card'],
         line_items: [
           {
-            price: 'price_1QaJ6OL1V6ZkZRf2ZfRp2w3p', // Monthly subscription price ID from Stripe dashboard
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Monthly Letter Service',
+                description: 'Send up to 4 letters per month to your loved ones'
+              },
+              unit_amount: 999, // $9.99
+              recurring: {
+                interval: 'month'
+              }
+            },
             quantity: 1,
           },
         ],
@@ -262,6 +272,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error handling webhook:', error);
       res.status(500).json({ error: 'Webhook handler failed' });
+    }
+  });
+
+  // One-time payment for single letters
+  app.post('/api/create-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.email) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create or retrieve Stripe customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+        });
+        customerId = customer.id;
+        await storage.updateUser(userId, { stripeCustomerId: customerId });
+      }
+
+      // Create checkout session for one-time payment
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Single Letter Service',
+                description: 'Send one letter to your loved one'
+              },
+              unit_amount: 399, // $3.99
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${req.headers.origin}/compose?payment_success=true`,
+        cancel_url: `${req.headers.origin}/subscribe`,
+        metadata: {
+          userId: userId,
+          type: 'single_letter'
+        },
+      });
+
+      res.json({ sessionId: session.id });
+    } catch (error) {
+      console.error('Payment creation error:', error);
+      res.status(500).json({ message: 'Failed to create payment session' });
     }
   });
 

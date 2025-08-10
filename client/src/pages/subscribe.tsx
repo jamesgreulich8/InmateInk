@@ -33,6 +33,51 @@ export default function Subscribe() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
+  const handlePayPerLetter = async () => {
+    if (!user) return;
+    
+    setIsProcessing(true);
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error("Stripe failed to load");
+      }
+
+      const response = await fetch("/api/create-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "single_letter",
+        }),
+      });
+
+      const { sessionId } = await response.json();
+
+      if (!response.ok) {
+        throw new Error("Failed to create payment session");
+      }
+
+      const result = await stripe.redirectToCheckout({
+        sessionId,
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleSubscribe = async () => {
     if (!user) return;
     
@@ -49,7 +94,7 @@ export default function Subscribe() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          priceId: "price_monthly_subscription", // We'll create this price ID in Stripe
+          type: "subscription", // Indicate this is for subscription
         }),
       });
 
@@ -181,12 +226,15 @@ export default function Subscribe() {
                   <span>Content moderation included</span>
                 </li>
               </ul>
-              <Link href="/compose">
-                <Button variant="outline" className="w-full">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Single Letter
-                </Button>
-              </Link>
+              <Button 
+                onClick={handlePayPerLetter} 
+                variant="outline" 
+                className="w-full"
+                disabled={isProcessing}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Single Letter
+              </Button>
             </CardContent>
           </Card>
 

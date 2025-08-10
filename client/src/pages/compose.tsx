@@ -78,12 +78,8 @@ export default function Compose() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/letters"] });
       
-      // Navigate to payment if one-time, otherwise back to dashboard
-      if (letter.paymentType === "one-time") {
-        navigate(`/checkout?letterId=${letter.id}&amount=2.99`);
-      } else {
-        navigate("/dashboard");
-      }
+      // Navigate back to dashboard for all letters (pay-per-letter is now free)
+      navigate("/dashboard");
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -204,7 +200,7 @@ export default function Compose() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="subscription">Use Subscription (if active)</SelectItem>
-                                  <SelectItem value="one-time">Pay Per Letter ($2.99)</SelectItem>
+                                  <SelectItem value="one-time">Pay Per Letter (FREE)</SelectItem>
                                 </SelectContent>
                               </Select>
                             </FormControl>

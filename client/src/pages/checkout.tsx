@@ -9,8 +9,7 @@ import { Navigation } from "@/components/Navigation";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
-// Make sure to call `loadStripe` outside of a component's render to avoid
-// recreating the `Stripe` object on every render.
+// Load Stripe outside render
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
 }
@@ -27,6 +26,11 @@ const CheckoutForm = () => {
     setIsLoading(true);
 
     if (!stripe || !elements) {
+      toast({
+        title: "Stripe not loaded",
+        description: "Please wait for the payment form to load.",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
@@ -44,14 +48,9 @@ const CheckoutForm = () => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Payment Successful",
-        description: "Thank you for your purchase! Your letter will be processed.",
-      });
     }
     setIsLoading(false);
-  }
+  };
 
   return (
     <Card className="max-w-md mx-auto">
@@ -82,13 +81,16 @@ export default function Checkout() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Create PaymentIntent as soon as the page loads
-    apiRequest("POST", "/api/create-payment-intent", { amount: 2.99 })
-      .then((res) => res.json())
-      .then((data) => {
-        setClientSecret(data.clientSecret)
+    // Amount must be in cents for Stripe
+    apiRequest("POST", "/api/create-payment-intent", { amount: 299 })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to create PaymentIntent");
+        const data = await res.json();
+        if (!data.clientSecret) throw new Error("No client secret returned");
+        setClientSecret(data.clientSecret);
       })
       .catch((error) => {
+        console.error(error);
         toast({
           title: "Error",
           description: "Failed to initialize payment",
@@ -111,10 +113,8 @@ export default function Checkout() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation authenticated />
-      
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Header */}
           <div className="mb-8 flex items-center space-x-4">
             <Link href="/dashboard">
               <Button variant="ghost" size="sm">
@@ -129,8 +129,6 @@ export default function Checkout() {
               </p>
             </div>
           </div>
-
-          {/* Payment Form */}
           <Elements stripe={stripePromise} options={{ clientSecret }}>
             <CheckoutForm />
           </Elements>

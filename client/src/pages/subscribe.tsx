@@ -71,16 +71,11 @@ export default function Subscribe() {
       }
 
       console.log("Redirecting to Stripe checkout with sessionId:", sessionId);
-      const result = await stripe.redirectToCheckout({
-        sessionId,
-      });
-
-      if (result.error) {
-        console.error("Stripe redirect error:", result.error);
-        throw new Error(result.error.message || "Payment redirect failed");
-      } else {
-        console.log("Redirect initiated successfully");
-      }
+      
+      // Use direct window navigation instead of Stripe's redirect method
+      const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}`;
+      console.log("Redirecting to:", checkoutUrl);
+      window.location.href = checkoutUrl;
     } catch (error) {
       console.error("Payment error:", error);
       toast({
@@ -131,16 +126,11 @@ export default function Subscribe() {
       }
 
       console.log("Redirecting to Stripe checkout with sessionId:", sessionId);
-      const result = await stripe.redirectToCheckout({
-        sessionId,
-      });
-
-      if (result.error) {
-        console.error("Stripe redirect error:", result.error);
-        throw new Error(result.error.message || "Subscription redirect failed");
-      } else {
-        console.log("Redirect initiated successfully");
-      }
+      
+      // Use direct window navigation instead of Stripe's redirect method
+      const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}`;
+      console.log("Redirecting to:", checkoutUrl);
+      window.location.href = checkoutUrl;
     } catch (error) {
       console.error("Subscription error:", error);
       toast({

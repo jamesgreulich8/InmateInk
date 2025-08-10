@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -8,14 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { Navigation } from "@/components/Navigation";
-import { Mail, Users, AlertCircle, DollarSign, Eye, CheckCircle, XCircle } from "lucide-react";
-import type { Letter } from "@shared/schema";
+import { Mail, Users, AlertCircle, DollarSign, Eye, CheckCircle, XCircle, Flag, Info } from "lucide-react";
+import type { Letter, ContentFilter } from "@shared/schema";
 
 export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [selectedLetterId, setSelectedLetterId] = useState<string | null>(null);
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
 
   // Redirect to home if not authenticated or not admin
   useEffect(() => {
@@ -44,6 +48,13 @@ export default function Admin() {
 
   const { data: letters = [] } = useQuery<Letter[]>({
     queryKey: ["/api/admin/letters"],
+    retry: false,
+  });
+
+  // Query for content filter details
+  const { data: filterDetails } = useQuery<{contentFilter: ContentFilter, letter: Letter}>({
+    queryKey: ["/api/admin/letters", selectedLetterId, "filter"],
+    enabled: !!selectedLetterId,
     retry: false,
   });
 
@@ -106,6 +117,20 @@ export default function Admin() {
       if (!rejectionReason) return;
     }
     updateStatusMutation.mutate({ id, status, rejectionReason });
+  };
+
+  const handleViewFilter = (letterId: string) => {
+    setSelectedLetterId(letterId);
+    setShowFilterDialog(true);
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'high': return 'text-red-600 bg-red-100';
+      case 'medium': return 'text-amber-600 bg-amber-100';
+      case 'low': return 'text-blue-600 bg-blue-100';
+      default: return 'text-slate-600 bg-slate-100';
+    }
   };
 
   if (isLoading) {
@@ -285,6 +310,15 @@ export default function Admin() {
                               <Eye className="w-4 h-4" />
                             </Button>
                             {letter.status === 'pending' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleViewFilter(letter.id)}
+                              >
+                                <Flag className="w-4 h-4 text-orange-600" />
+                              </Button>
+                            )}
+                            {letter.status === 'pending' && (
                               <>
                                 <Button 
                                   variant="ghost" 
@@ -345,6 +379,185 @@ export default function Admin() {
           </Card>
         </div>
       </div>
+
+      {/* Content Filter Review Dialog */}
+      <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag className="w-5 h-5 text-orange-600" />
+              Content Filter Review - #{selectedLetterId?.slice(-8)}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {filterDetails && (
+            <div className="space-y-6">
+              {/* Filter Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    Filter Summary
+                    <Badge className={getSeverityColor(filterDetails.contentFilter.severity)}>
+                      {filterDetails.contentFilter.severity?.toUpperCase()} RISK
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-600">Requires Review</label>
+                      <div className="mt-1">
+                        {filterDetails.contentFilter.requiresReview ? (
+                          <Badge className="bg-red-100 text-red-800">Yes - Manual Review Required</Badge>
+                        ) : (
+                          <Badge className="bg-green-100 text-green-800">No - Auto-approved</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-600">Flagged Words</label>
+                      <div className="mt-1">
+                        <span className="text-sm text-slate-900">
+                          {filterDetails.contentFilter.flaggedWords?.length || 0} items flagged
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Detailed Reasons */}
+              {filterDetails.contentFilter.reasons && filterDetails.contentFilter.reasons.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Info className="w-5 h-5" />
+                      Filtering Reasons
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {filterDetails.contentFilter.reasons.map((reason, index) => {
+                        const [level, description] = reason.split(': ');
+                        const isHighRisk = level.includes('High-risk');
+                        const isMediumRisk = level.includes('Medium-risk');
+                        
+                        return (
+                          <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
+                            <AlertCircle className={`w-5 h-5 mt-0.5 ${
+                              isHighRisk ? 'text-red-500' : 
+                              isMediumRisk ? 'text-amber-500' : 'text-blue-500'
+                            }`} />
+                            <div>
+                              <div className={`font-medium text-sm ${
+                                isHighRisk ? 'text-red-700' : 
+                                isMediumRisk ? 'text-amber-700' : 'text-blue-700'
+                              }`}>
+                                {level}
+                              </div>
+                              <div className="text-sm text-slate-600 mt-1">
+                                {description}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Flagged Words */}
+              {filterDetails.contentFilter.flaggedWords && filterDetails.contentFilter.flaggedWords.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Flagged Content</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {filterDetails.contentFilter.flaggedWords.map((word, index) => (
+                        <Badge key={index} variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                          {word}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Letter Content Preview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Letter Content</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-slate-50 p-4 rounded-lg text-sm whitespace-pre-wrap border">
+                    {filterDetails.letter.content}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Letter Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Letter Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <label className="font-medium text-slate-600">To:</label>
+                      <div className="mt-1">{filterDetails.letter.recipientFirstName} {filterDetails.letter.recipientLastName}</div>
+                    </div>
+                    <div>
+                      <label className="font-medium text-slate-600">Inmate ID:</label>
+                      <div className="mt-1">{filterDetails.letter.recipientId}</div>
+                    </div>
+                    <div>
+                      <label className="font-medium text-slate-600">Facility:</label>
+                      <div className="mt-1">{filterDetails.letter.facilityName}</div>
+                    </div>
+                    <div>
+                      <label className="font-medium text-slate-600">Payment Type:</label>
+                      <div className="mt-1">{filterDetails.letter.paymentType}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowFilterDialog(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    handleStatusUpdate(selectedLetterId!, 'rejected');
+                    setShowFilterDialog(false);
+                  }}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject Letter
+                </Button>
+                <Button 
+                  onClick={() => {
+                    handleStatusUpdate(selectedLetterId!, 'approved');
+                    setShowFilterDialog(false);
+                  }}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve Letter
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

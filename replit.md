@@ -43,10 +43,14 @@ Preferred communication style: Simple, everyday language.
 - **Security**: HTTP-only cookies with secure flags for production
 
 ### Content Moderation System
-- **Automated Filtering**: Basic keyword detection for inappropriate content
-- **Risk Assessment**: Three-tier severity system (low, medium, high)
-- **Review Workflow**: Flagged content requires manual admin approval
-- **Status Tracking**: Letter progression from draft to delivered
+- **Comprehensive Filtering**: Advanced pattern detection covering all correctional facility requirements
+- **Risk Categories**: 
+  - High-risk: Sexual content, violence, weapons, drugs, escape plans, coded messages
+  - Medium-risk: Derogatory language, inmate/staff mentions, contact information, suspicious patterns
+  - Low-risk: Excessive legal discussion, general emotional content
+- **Pattern Detection**: URL/QR codes, encrypted messages, excessive capitalization, suspicious formatting
+- **Review Workflow**: Detailed admin interface showing exact flagging reasons and content analysis
+- **Compliance Standards**: Meets correctional facility requirements for mail screening
 
 ### Payment Integration
 - **Provider**: Stripe for payment processing

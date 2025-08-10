@@ -32,6 +32,7 @@ export interface IStorage {
   // Content filter operations
   createContentFilter(filter: InsertContentFilter): Promise<ContentFilter>;
   getContentFiltersByLetterId(letterId: string): Promise<ContentFilter[]>;
+  getContentFilterWithLetterDetails(letterId: string): Promise<{contentFilter: ContentFilter, letter: Letter} | undefined>;
   
   // Admin operations
   getUserCount(): Promise<number>;
@@ -154,6 +155,21 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(contentFilters)
       .where(eq(contentFilters.letterId, letterId));
+  }
+
+  async getContentFilterWithLetterDetails(letterId: string): Promise<{contentFilter: ContentFilter, letter: Letter} | undefined> {
+    const result = await db
+      .select()
+      .from(contentFilters)
+      .innerJoin(letters, eq(contentFilters.letterId, letters.id))
+      .where(eq(contentFilters.letterId, letterId));
+    
+    if (result.length === 0) return undefined;
+    
+    return {
+      contentFilter: result[0].content_filters,
+      letter: result[0].letters
+    };
   }
 
   // Admin operations

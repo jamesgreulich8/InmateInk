@@ -13,40 +13,123 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 });
 
-// Basic content filtering - checks for inappropriate words
-function filterContent(content: string): { flaggedWords: string[], severity: 'low' | 'medium' | 'high', requiresReview: boolean } {
-  const highRiskWords = ['weapon', 'drug', 'escape', 'violence', 'threat'];
-  const mediumRiskWords = ['money', 'transfer', 'payment', 'contraband'];
-  const lowRiskWords = ['angry', 'upset', 'frustrated'];
-  
-  const words = content.toLowerCase().split(/\s+/);
+// Comprehensive content filtering for correctional facility compliance
+function filterContent(content: string): { flaggedWords: string[], severity: 'low' | 'medium' | 'high', requiresReview: boolean, reasons: string[] } {
+  const text = content.toLowerCase();
+  const words = text.split(/\s+/);
   const flaggedWords: string[] = [];
+  const reasons: string[] = [];
   
-  words.forEach(word => {
-    if (highRiskWords.some(risk => word.includes(risk))) {
-      flaggedWords.push(word);
-    } else if (mediumRiskWords.some(risk => word.includes(risk))) {
-      flaggedWords.push(word);
-    } else if (lowRiskWords.some(risk => word.includes(risk))) {
-      flaggedWords.push(word);
-    }
-  });
+  // High-risk categories (automatic rejection/review)
+  const highRiskPatterns = {
+    // Sexually explicit or suggestive content
+    sexual: ['sexual', 'nude', 'naked', 'intimate', 'erotic', 'porn', 'masturbate', 'orgasm', 'climax', 'aroused', 'horny', 'seductive', 'seduce'],
+    
+    // Violent or threatening statements
+    violence: ['kill', 'murder', 'stab', 'shoot', 'attack', 'assault', 'beat', 'hurt', 'harm', 'threaten', 'revenge', 'retaliate', 'payback'],
+    
+    // Weapons, drugs, gangs, illegal activities
+    illegal: ['weapon', 'gun', 'knife', 'blade', 'pistol', 'rifle', 'drug', 'cocaine', 'heroin', 'meth', 'marijuana', 'weed', 'gang', 'dealer', 'smuggle', 'contraband'],
+    
+    // Escape plans and security threats
+    security: ['escape', 'breakout', 'flee', 'run away', 'guard schedule', 'security', 'camera', 'patrol', 'fence', 'wall', 'exit', 'blueprint', 'layout'],
+    
+    // Financial transactions
+    financial: ['send money', 'wire transfer', 'bank account', 'deposit', 'withdraw', 'paypal', 'venmo', 'cashapp', 'bitcoin', 'cryptocurrency']
+  };
+  
+  // Medium-risk categories (requires review)
+  const mediumRiskPatterns = {
+    // Coded language indicators
+    coded: ['code word', 'our friend', 'you know who', 'that thing', 'the package', 'business', 'take care of'],
+    
+    // Derogatory language (sample - would need extensive list)
+    derogatory: ['hate', 'racist', 'stupid', 'idiot', 'scumbag', 'trash'],
+    
+    // Mentions of other inmates/staff
+    people: ['inmate', 'prisoner', 'guard', 'officer', 'warden', 'staff member', 'co', 'cellmate'],
+    
+    // Contact information
+    contact: ['http', 'www', 'facebook', 'instagram', 'twitter', 'snapchat', 'tiktok', '@', 'email', 'phone number', 'call me']
+  };
+  
+  // Low-risk categories (flagged but may not require review)
+  const lowRiskPatterns = {
+    // Excessive legal discussion
+    legal: ['lawsuit', 'appeal', 'court', 'judge', 'lawyer', 'attorney', 'legal', 'case', 'trial', 'sentence'],
+    
+    // General concern words
+    concern: ['worried', 'scared', 'anxious', 'depressed', 'sad', 'angry', 'frustrated', 'upset']
+  };
   
   let severity: 'low' | 'medium' | 'high' = 'low';
   let requiresReview = false;
   
-  if (flaggedWords.some(word => highRiskWords.some(risk => word.includes(risk)))) {
-    severity = 'high';
-    requiresReview = true;
-  } else if (flaggedWords.some(word => mediumRiskWords.some(risk => word.includes(risk)))) {
+  // Check high-risk patterns
+  Object.entries(highRiskPatterns).forEach(([category, patterns]) => {
+    patterns.forEach(pattern => {
+      if (text.includes(pattern)) {
+        flaggedWords.push(pattern);
+        severity = 'high';
+        requiresReview = true;
+        reasons.push(`High-risk content detected: ${category}`);
+      }
+    });
+  });
+  
+  // Check medium-risk patterns
+  Object.entries(mediumRiskPatterns).forEach(([category, patterns]) => {
+    patterns.forEach(pattern => {
+      if (text.includes(pattern)) {
+        flaggedWords.push(pattern);
+        if (severity !== 'high') severity = 'medium';
+        requiresReview = true;
+        reasons.push(`Medium-risk content detected: ${category}`);
+      }
+    });
+  });
+  
+  // Check low-risk patterns
+  Object.entries(lowRiskPatterns).forEach(([category, patterns]) => {
+    patterns.forEach(pattern => {
+      if (text.includes(pattern)) {
+        flaggedWords.push(pattern);
+        if (severity === 'low') reasons.push(`Low-risk content detected: ${category}`);
+      }
+    });
+  });
+  
+  // Additional pattern checks
+  
+  // Check for URLs and QR codes
+  const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\b[a-zA-Z0-9.-]+\.(com|org|net|gov|edu|co|uk|ca|au)\b)/gi;
+  const qrPattern = /qr\s*code/gi;
+  if (urlPattern.test(text) || qrPattern.test(text)) {
+    flaggedWords.push('URL/QR code detected');
     severity = 'medium';
     requiresReview = true;
-  } else if (flaggedWords.length > 0) {
-    severity = 'low';
-    requiresReview = false;
+    reasons.push('Medium-risk content detected: URLs or QR codes');
   }
   
-  return { flaggedWords, severity, requiresReview };
+  // Check for encrypted/coded messages (simple detection)
+  const suspiciousPatterns = /([A-Z]{3,}\s){3,}|[0-9]{4,}[A-Z]{2,}|[A-Z][0-9][A-Z][0-9]/g;
+  if (suspiciousPatterns.test(content)) {
+    flaggedWords.push('Possible coded message');
+    severity = 'high';
+    requiresReview = true;
+    reasons.push('High-risk content detected: Possible coded language');
+  }
+  
+  // Check for excessive caps (could indicate yelling/aggression)
+  const capsWords = content.match(/[A-Z]{4,}/g);
+  if (capsWords && capsWords.length > 3) {
+    flaggedWords.push('Excessive capitalization');
+    if (severity === 'low') severity = 'medium';
+    requiresReview = true;
+    reasons.push('Medium-risk content detected: Excessive capitalization');
+  }
+  
+  return { flaggedWords, severity, requiresReview, reasons };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -98,10 +181,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: contentFilter.requiresReview ? 'pending' : 'approved',
       });
 
-      // Create content filter record
+      // Create content filter record with detailed reasons
       await storage.createContentFilter({
         letterId: letter.id,
-        ...contentFilter,
+        flaggedWords: contentFilter.flaggedWords,
+        severity: contentFilter.severity,
+        requiresReview: contentFilter.requiresReview,
+        reasons: contentFilter.reasons,
       });
 
       // Update user letter count if subscription
@@ -285,6 +371,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching admin letters:", error);
       res.status(500).json({ message: "Failed to fetch letters" });
+    }
+  });
+
+  // Get detailed content filter information for admin review
+  app.get('/api/admin/letters/:id/filter', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const filterDetails = await storage.getContentFilterWithLetterDetails(id);
+      
+      if (!filterDetails) {
+        return res.status(404).json({ message: "Content filter not found" });
+      }
+
+      res.json(filterDetails);
+    } catch (error) {
+      console.error("Error fetching content filter details:", error);
+      res.status(500).json({ message: "Failed to fetch content filter details" });
     }
   });
 

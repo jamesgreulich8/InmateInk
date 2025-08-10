@@ -69,6 +69,7 @@ export const contentFilters = pgTable("content_filters", {
   flaggedWords: text("flagged_words").array(),
   severity: varchar("severity").notNull(), // low, medium, high
   requiresReview: boolean("requires_review").default(false),
+  reasons: text("reasons").array(), // detailed reasons for flagging
   createdAt: timestamp("created_at").defaultNow(),
 });
 

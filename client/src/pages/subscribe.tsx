@@ -38,13 +38,10 @@ export default function Subscribe() {
     
     setIsProcessing(true);
     try {
-      console.log("Loading Stripe...");
       const stripe = await stripePromise;
       if (!stripe) {
-        console.error("Stripe instance is null");
-        throw new Error("Stripe failed to load - please check your internet connection");
+        throw new Error("Stripe failed to load");
       }
-      console.log("Stripe loaded successfully:", stripe);
 
       const response = await fetch("/api/create-payment", {
         method: "POST",
@@ -61,21 +58,20 @@ export default function Subscribe() {
         throw new Error(errorData.message || "Failed to create payment session");
       }
 
-      const responseData = await response.json();
-      console.log("Payment response data:", responseData);
-      const { sessionId } = responseData;
+      const { sessionId } = await response.json();
 
       if (!sessionId) {
-        console.error("No sessionId in response:", responseData);
         throw new Error("No session ID received from server");
       }
 
-      console.log("Redirecting to Stripe checkout with sessionId:", sessionId);
-      
-      // Use direct window navigation instead of Stripe's redirect method
-      const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}`;
-      console.log("Redirecting to:", checkoutUrl);
-      window.location.href = checkoutUrl;
+      // Use the official Stripe redirect method
+      const { error } = await stripe.redirectToCheckout({
+        sessionId,
+      });
+
+      if (error) {
+        throw new Error(error.message || "Payment redirect failed");
+      }
     } catch (error) {
       console.error("Payment error:", error);
       toast({
@@ -93,13 +89,10 @@ export default function Subscribe() {
     
     setIsProcessing(true);
     try {
-      console.log("Loading Stripe for subscription...");
       const stripe = await stripePromise;
       if (!stripe) {
-        console.error("Stripe instance is null");
-        throw new Error("Stripe failed to load - please check your internet connection");
+        throw new Error("Stripe failed to load");
       }
-      console.log("Stripe loaded successfully:", stripe);
 
       const response = await fetch("/api/create-subscription", {
         method: "POST",
@@ -107,7 +100,7 @@ export default function Subscribe() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          type: "subscription", // Indicate this is for subscription
+          type: "subscription",
         }),
       });
 
@@ -116,21 +109,20 @@ export default function Subscribe() {
         throw new Error(errorData.message || "Failed to create checkout session");
       }
 
-      const responseData = await response.json();
-      console.log("Subscription response data:", responseData);
-      const { sessionId } = responseData;
+      const { sessionId } = await response.json();
 
       if (!sessionId) {
-        console.error("No sessionId in response:", responseData);
         throw new Error("No session ID received from server");
       }
 
-      console.log("Redirecting to Stripe checkout with sessionId:", sessionId);
-      
-      // Use direct window navigation instead of Stripe's redirect method
-      const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}`;
-      console.log("Redirecting to:", checkoutUrl);
-      window.location.href = checkoutUrl;
+      // Use the official Stripe redirect method
+      const { error } = await stripe.redirectToCheckout({
+        sessionId,
+      });
+
+      if (error) {
+        throw new Error(error.message || "Subscription redirect failed");
+      }
     } catch (error) {
       console.error("Subscription error:", error);
       toast({
@@ -158,80 +150,45 @@ export default function Subscribe() {
     return null; // Will redirect
   }
 
-  // If user already has active subscription
-  if (user?.subscriptionStatus === 'active') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <div className="mb-6">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="mb-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-
-          <Card className="text-center">
-            <CardHeader>
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Check className="h-8 w-8 text-green-600" />
-              </div>
-              <CardTitle className="text-2xl">You're Already Subscribed!</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-6">
-                Your subscription is active and you have access to all premium features.
-              </p>
-              <div className="flex justify-center space-x-4">
-                <Link href="/dashboard">
-                  <Button>Go to Dashboard</Button>
-                </Link>
-                <Link href="/compose">
-                  <Button variant="outline">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Compose Letter
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="mb-4">
+            <Button variant="ghost" size="sm" className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Choose Your Plan</h1>
-            <p className="text-lg text-gray-600">Stay connected with your loved ones</p>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Choose Your Plan</h1>
+            <p className="text-gray-600 mt-2">Select the best option for staying connected with your loved ones</p>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* Pay-per-letter option */}
-          <Card className="relative">
+          <Card className="relative border-2 hover:border-blue-200 transition-colors">
             <CardHeader>
-              <CardTitle className="text-xl">Pay Per Letter</CardTitle>
-              <div className="text-3xl font-bold">$3.99 <span className="text-base font-normal text-gray-600">per letter</span></div>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl">Pay Per Letter</CardTitle>
+                  <p className="text-gray-600 mt-2">Perfect for occasional messages</p>
+                </div>
+                <Badge variant="outline">Flexible</Badge>
+              </div>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-gray-900">$3.99</span>
+                <span className="text-gray-600 ml-2">per letter</span>
+              </div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
-                  <span>Send individual letters</span>
+                  <span>Send one letter immediately</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
@@ -239,7 +196,7 @@ export default function Subscribe() {
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
-                  <span>Professional printing & delivery</span>
+                  <span>Same-day processing</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
@@ -259,47 +216,54 @@ export default function Subscribe() {
           </Card>
 
           {/* Monthly subscription option */}
-          <Card className="relative border-blue-200 shadow-lg">
+          <Card className="relative border-2 border-blue-500 shadow-lg">
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <Badge className="bg-blue-600 text-white px-4 py-1">
-                <Star className="h-3 w-3 mr-1" />
+                <Star className="h-4 w-4 mr-1" />
                 Most Popular
               </Badge>
             </div>
-            <CardHeader className="pt-8">
-              <CardTitle className="text-xl">Monthly Subscription</CardTitle>
-              <div className="text-3xl font-bold text-blue-600">
-                $9.99 <span className="text-base font-normal text-gray-600">per month</span>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl">Monthly Plan</CardTitle>
+                  <p className="text-gray-600 mt-2">Best value for regular communication</p>
+                </div>
+                <Badge className="bg-green-100 text-green-800">Save 50%</Badge>
               </div>
-              <p className="text-sm text-gray-600">Save 37% compared to individual letters</p>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-blue-600">$9.99</span>
+                <span className="text-gray-600 ml-2">per month</span>
+              </div>
+              <p className="text-sm text-gray-500">Just $2.50 per letter</p>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
-                  <span className="font-medium">4 letters per month included</span>
+                  <span>Send up to 4 letters per month</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
-                  <span>Professional printing & delivery</span>
+                  <span>Priority processing</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
-                  <span>Priority customer support</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="h-5 w-5 text-green-600 mr-3" />
-                  <span>Advanced content moderation</span>
+                  <span>Automatic monthly renewal</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-3" />
                   <span>Cancel anytime</span>
                 </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-600 mr-3" />
+                  <span>Email status updates</span>
+                </li>
               </ul>
               <Button 
                 onClick={handleSubscribe} 
-                disabled={isProcessing}
                 className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isProcessing}
               >
                 {isProcessing ? (
                   <>
@@ -317,55 +281,33 @@ export default function Subscribe() {
           </Card>
         </div>
 
-        <Separator className="my-8" />
+        {/* FAQ Section */}
+        <div className="bg-white rounded-lg shadow-sm p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">How does the service work?</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Write your letter online, and we'll print and mail it to your recipient. All letters are screened for compliance with correctional facility guidelines.
+              </p>
 
-        {/* Features section */}
-        <div className="bg-white rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-center mb-6">Why Choose Our Service?</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Secure & Compliant</h3>
-              <p className="text-gray-600 text-sm">Advanced content filtering ensures your letters meet all correctional facility requirements.</p>
+              <h3 className="font-semibold text-gray-900 mb-2">What payment methods do you accept?</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                We accept all major credit and debit cards through our secure Stripe payment system.
+              </p>
             </div>
-            <div className="text-center">
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Mail className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Professional Delivery</h3>
-              <p className="text-gray-600 text-sm">Your letters are professionally printed on quality paper and delivered directly to the facility.</p>
-            </div>
-            <div className="text-center">
-              <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <Clock className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Fast Processing</h3>
-              <p className="text-gray-600 text-sm">Most letters are processed and sent within 1-2 business days of submission.</p>
-            </div>
-          </div>
-        </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Can I cancel my subscription?</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Yes, you can cancel your monthly subscription at any time from your dashboard. You'll continue to have access until the end of your billing period.
+              </p>
 
-        {/* FAQ section */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Frequently Asked Questions</h2>
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-1">How does the monthly subscription work?</h3>
-              <p className="text-gray-600 text-sm">Your subscription includes 4 letters per month. Unused letters don't roll over to the next month.</p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-1">Can I cancel my subscription anytime?</h3>
-              <p className="text-gray-600 text-sm">Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.</p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-1">What if my letter is rejected?</h3>
-              <p className="text-gray-600 text-sm">If a letter doesn't meet facility requirements, we'll notify you with specific feedback so you can revise and resubmit.</p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-1">How long does delivery take?</h3>
-              <p className="text-gray-600 text-sm">Letters are typically processed within 1-2 business days and delivered within 3-5 business days depending on the facility.</p>
+              <h3 className="font-semibold text-gray-900 mb-2">How long does delivery take?</h3>
+              <p className="text-gray-600 text-sm">
+                Letters are typically processed within 1-2 business days and delivered within 3-5 business days, depending on the facility's location and mail processing times.
+              </p>
             </div>
           </div>
         </div>

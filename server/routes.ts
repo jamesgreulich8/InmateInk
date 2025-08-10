@@ -183,9 +183,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.stripeSubscriptionId) {
         const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
 
+        const latestInvoice = subscription.latest_invoice;
+        const clientSecret = (latestInvoice && typeof latestInvoice === 'object' && 'payment_intent' in latestInvoice && latestInvoice.payment_intent && typeof latestInvoice.payment_intent === 'object' && 'client_secret' in latestInvoice.payment_intent) 
+          ? latestInvoice.payment_intent.client_secret 
+          : null;
+
         res.send({
           subscriptionId: subscription.id,
-          clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+          clientSecret: clientSecret,
         });
 
         return;
@@ -209,7 +214,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             currency: 'usd',
             product_data: {
               name: 'Monthly Letter Service',
-              description: 'Up to 4 letters per month (1 per week)'
             },
             unit_amount: 999, // $9.99
             recurring: {
@@ -224,9 +228,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserStripeInfo(user.id, customer.id, subscription.id);
       await storage.updateUserSubscriptionStatus(user.id, 'active');
   
+      const latestInvoice = subscription.latest_invoice;
+      const clientSecret = (latestInvoice && typeof latestInvoice === 'object' && 'payment_intent' in latestInvoice && latestInvoice.payment_intent && typeof latestInvoice.payment_intent === 'object' && 'client_secret' in latestInvoice.payment_intent) 
+        ? latestInvoice.payment_intent.client_secret 
+        : null;
+
       res.send({
         subscriptionId: subscription.id,
-        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+        clientSecret: clientSecret,
       });
     } catch (error: any) {
       return res.status(400).send({ error: { message: error.message } });

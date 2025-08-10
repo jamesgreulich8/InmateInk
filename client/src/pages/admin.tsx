@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Navigation } from "@/components/Navigation";
 import { Mail, Users, AlertCircle, DollarSign, Eye, CheckCircle, XCircle } from "lucide-react";
+import type { Letter } from "@shared/schema";
 
 export default function Admin() {
   const { toast } = useToast();
@@ -31,12 +32,17 @@ export default function Admin() {
     }
   }, [isAuthenticated, isLoading, user, toast]);
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    totalLetters: number;
+    pendingReview: number;
+    totalUsers: number;
+    revenue: number;
+  }>({
     queryKey: ["/api/admin/stats"],
     retry: false,
   });
 
-  const { data: letters = [] } = useQuery({
+  const { data: letters = [] } = useQuery<Letter[]>({
     queryKey: ["/api/admin/letters"],
     retry: false,
   });

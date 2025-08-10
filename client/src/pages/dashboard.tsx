@@ -10,6 +10,7 @@ import { Navigation } from "@/components/Navigation";
 import { Separator } from "@/components/ui/separator";
 import { Mail, FileText, Settings, CreditCard, CheckCircle, Clock, Truck } from "lucide-react";
 import { Link } from "wouter";
+import type { Letter } from "@shared/schema";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -30,12 +31,9 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: user } = useQuery({
-    queryKey: ["/api/auth/user"],
-    retry: false,
-  });
+  const { user } = useAuth();
 
-  const { data: letters = [] } = useQuery({
+  const { data: letters = [] } = useQuery<Letter[]>({
     queryKey: ["/api/letters"],
     retry: false,
   });

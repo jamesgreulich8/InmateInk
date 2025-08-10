@@ -78,8 +78,11 @@ export type User = typeof users.$inferSelect;
 
 export const insertLetterSchema = createInsertSchema(letters).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
+  status: true,
+  rejectionReason: true,
 });
 
 export type InsertLetter = z.infer<typeof insertLetterSchema>;

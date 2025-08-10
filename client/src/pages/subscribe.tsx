@@ -38,10 +38,13 @@ export default function Subscribe() {
     
     setIsProcessing(true);
     try {
+      console.log("Loading Stripe...");
       const stripe = await stripePromise;
       if (!stripe) {
-        throw new Error("Stripe failed to load");
+        console.error("Stripe instance is null");
+        throw new Error("Stripe failed to load - please check your internet connection");
       }
+      console.log("Stripe loaded successfully:", stripe);
 
       const response = await fetch("/api/create-payment", {
         method: "POST",
@@ -53,18 +56,30 @@ export default function Subscribe() {
         }),
       });
 
-      const { sessionId } = await response.json();
-
       if (!response.ok) {
-        throw new Error("Failed to create payment session");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create payment session");
       }
 
+      const responseData = await response.json();
+      console.log("Payment response data:", responseData);
+      const { sessionId } = responseData;
+
+      if (!sessionId) {
+        console.error("No sessionId in response:", responseData);
+        throw new Error("No session ID received from server");
+      }
+
+      console.log("Redirecting to Stripe checkout with sessionId:", sessionId);
       const result = await stripe.redirectToCheckout({
         sessionId,
       });
 
       if (result.error) {
-        throw new Error(result.error.message);
+        console.error("Stripe redirect error:", result.error);
+        throw new Error(result.error.message || "Payment redirect failed");
+      } else {
+        console.log("Redirect initiated successfully");
       }
     } catch (error) {
       console.error("Payment error:", error);
@@ -83,10 +98,13 @@ export default function Subscribe() {
     
     setIsProcessing(true);
     try {
+      console.log("Loading Stripe for subscription...");
       const stripe = await stripePromise;
       if (!stripe) {
-        throw new Error("Stripe failed to load");
+        console.error("Stripe instance is null");
+        throw new Error("Stripe failed to load - please check your internet connection");
       }
+      console.log("Stripe loaded successfully:", stripe);
 
       const response = await fetch("/api/create-subscription", {
         method: "POST",
@@ -98,18 +116,30 @@ export default function Subscribe() {
         }),
       });
 
-      const { sessionId } = await response.json();
-
       if (!response.ok) {
-        throw new Error("Failed to create checkout session");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create checkout session");
       }
 
+      const responseData = await response.json();
+      console.log("Subscription response data:", responseData);
+      const { sessionId } = responseData;
+
+      if (!sessionId) {
+        console.error("No sessionId in response:", responseData);
+        throw new Error("No session ID received from server");
+      }
+
+      console.log("Redirecting to Stripe checkout with sessionId:", sessionId);
       const result = await stripe.redirectToCheckout({
         sessionId,
       });
 
       if (result.error) {
-        throw new Error(result.error.message);
+        console.error("Stripe redirect error:", result.error);
+        throw new Error(result.error.message || "Subscription redirect failed");
+      } else {
+        console.log("Redirect initiated successfully");
       }
     } catch (error) {
       console.error("Subscription error:", error);

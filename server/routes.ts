@@ -196,11 +196,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLetterCount(userId, (user.lettersThisMonth || 0) + 1);
       }
 
-      // Send confirmation email
+      // Send confirmation email to user and notification to admin
       try {
         await emailService.sendStatusUpdate(user, letter, letter.status);
+        await emailService.sendNewLetterNotification(user, letter);
       } catch (emailError) {
-        console.error('Failed to send confirmation email:', emailError);
+        console.error('Failed to send emails:', emailError);
         // Don't fail the request if email fails
       }
 

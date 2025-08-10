@@ -117,6 +117,99 @@ export const emailService = {
     });
   },
 
+  // Send new letter notification to admin
+  async sendNewLetterNotification(user: User, letter: Letter) {
+    const adminEmail = process.env.GMAIL_USER; // Send to the Gmail account owner
+    
+    const subject = `New Letter Submitted - #${letter.id.slice(-8)}`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Letter Notification</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #F9FAFB; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+          <h1 style="color: #111827; margin: 0 0 16px 0; font-size: 24px;">New Letter Submitted</h1>
+          <div style="background: white; border-radius: 6px; padding: 20px; border-left: 4px solid #F59E0B;">
+            <div style="display: flex; align-items: center; margin-bottom: 12px;">
+              <div style="background: #F59E0B; color: white; padding: 4px 12px; border-radius: 16px; font-size: 14px; font-weight: 500;">
+                PENDING REVIEW
+              </div>
+            </div>
+            <p style="margin: 0; font-size: 16px;">A new letter has been submitted and is awaiting review.</p>
+          </div>
+        </div>
+        
+        <div style="background: white; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px;">Letter Details</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">Order ID:</td>
+              <td style="padding: 8px 0; color: #111827;">#${letter.id.slice(-8)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">From:</td>
+              <td style="padding: 8px 0; color: #111827;">${user.firstName} ${user.lastName} (${user.email})</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">To:</td>
+              <td style="padding: 8px 0; color: #111827;">${letter.recipientFirstName} ${letter.recipientLastName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">Inmate ID:</td>
+              <td style="padding: 8px 0; color: #111827;">${letter.recipientId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">Facility:</td>
+              <td style="padding: 8px 0; color: #111827;">${letter.facilityName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">Payment:</td>
+              <td style="padding: 8px 0; color: #111827;">${letter.paymentType} ${letter.amount ? `($${letter.amount})` : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">Subject:</td>
+              <td style="padding: 8px 0; color: #111827;">${letter.subject || 'No subject'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6B7280; font-weight: 500;">Date:</td>
+              <td style="padding: 8px 0; color: #111827;">${letter.createdAt ? new Date(letter.createdAt).toLocaleString('en-US') : 'N/A'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background: white; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px;">Letter Content</h2>
+          <div style="background: #F9FAFB; padding: 16px; border-radius: 6px; white-space: pre-wrap; font-family: monospace; font-size: 14px; line-height: 1.5; max-height: 300px; overflow-y: auto;">
+${letter.content}
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px 0; border-top: 1px solid #E5E7EB;">
+          <a href="${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/admin" 
+             style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Review in Admin Panel
+          </a>
+        </div>
+
+        <div style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 20px;">
+          <p>This is an automated notification from your Inmate Mail Service admin panel.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await this.sendEmail({
+      to: adminEmail!,
+      subject,
+      html,
+    });
+  },
+
   // Send welcome email for new users
   async sendWelcomeEmail(user: User) {
     if (!user.email) return;

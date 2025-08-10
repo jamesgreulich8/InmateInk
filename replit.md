@@ -70,6 +70,7 @@ Preferred communication style: Simple, everyday language.
 - **Neon Database**: Serverless PostgreSQL hosting
 - **Stripe**: Payment processing and subscription management
 - **Replit Auth**: Authentication and user management
+- **Gmail SMTP**: Email notifications for new letters and status updates
 
 ### Key Libraries
 - **Frontend**: React, TanStack Query, React Hook Form, Radix UI, Tailwind CSS

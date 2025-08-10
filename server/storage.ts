@@ -16,6 +16,7 @@ import { eq, and, desc, count } from "drizzle-orm";
 export interface IStorage {
   // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
+  getUserByLetterId(letterId: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserStripeInfo(id: string, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
   updateUserSubscriptionStatus(id: string, status: string): Promise<User>;
@@ -46,6 +47,16 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async getUserByLetterId(letterId: string): Promise<User | undefined> {
+    const result = await db
+      .select({ user: users })
+      .from(users)
+      .innerJoin(letters, eq(users.id, letters.userId))
+      .where(eq(letters.id, letterId));
+    
+    return result.length > 0 ? result[0].user : undefined;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

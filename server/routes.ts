@@ -4,13 +4,14 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertLetterSchema } from "@shared/schema";
+import { emailService } from './emailService';
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-07-30.basil",
 });
 
 // Comprehensive content filtering for correctional facility compliance
@@ -195,6 +196,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLetterCount(userId, (user.lettersThisMonth || 0) + 1);
       }
 
+      // Send confirmation email
+      try {
+        await emailService.sendStatusUpdate(user, letter, letter.status);
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+        // Don't fail the request if email fails
+      }
+
       res.json(letter);
     } catch (error) {
       console.error("Error creating letter:", error);
@@ -298,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: [{
           price_data: {
             currency: 'usd',
-            product_data: {
+            product: {
               name: 'Monthly Letter Service',
             },
             unit_amount: 999, // $9.99
@@ -398,6 +407,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test email endpoint for admins
+  app.post('/api/admin/test-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!user.email) {
+        return res.status(400).json({ message: "No email address on file" });
+      }
+
+      await emailService.sendWelcomeEmail(user);
+      res.json({ message: "Test email sent successfully" });
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      res.status(500).json({ message: "Failed to send test email", error: error.message });
+    }
+  });
+
   app.patch('/api/admin/letters/:id/status', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -411,6 +442,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { status, rejectionReason } = req.body;
 
       const letter = await storage.updateLetterStatus(id, status, rejectionReason);
+      
+      // Send status update email
+      try {
+        const letterUser = await storage.getUserByLetterId(id);
+        if (letterUser) {
+          await emailService.sendStatusUpdate(letterUser, letter, status, rejectionReason);
+        }
+      } catch (emailError) {
+        console.error('Failed to send status update email:', emailError);
+        // Don't fail the request if email fails
+      }
+
       res.json(letter);
     } catch (error) {
       console.error("Error updating letter status:", error);

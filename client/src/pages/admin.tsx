@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Navigation } from "@/components/Navigation";
-import { Mail, Users, AlertCircle, DollarSign, Eye, CheckCircle, XCircle, Flag, Info } from "lucide-react";
+import { Mail, Users, AlertCircle, DollarSign, Eye, CheckCircle, XCircle, Flag, Info, Send } from "lucide-react";
 import type { Letter, ContentFilter } from "@shared/schema";
 
 export default function Admin() {
@@ -133,6 +133,26 @@ export default function Admin() {
     }
   };
 
+  const testEmailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/test-email", {});
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Test Email Sent",
+        description: "Check your email inbox for the test message.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Email Test Failed",
+        description: error.message || "Failed to send test email",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -148,11 +168,22 @@ export default function Admin() {
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">Admin Panel</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Manage orders, review content, and monitor system activity
-            </p>
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Admin Panel</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Manage orders, review content, and monitor system activity
+              </p>
+            </div>
+            <Button 
+              onClick={() => testEmailMutation.mutate()}
+              disabled={testEmailMutation.isPending}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Test Email
+            </Button>
           </div>
 
           {/* Admin Stats */}

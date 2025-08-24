@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Check, Mail, Clock, Shield, Star } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
@@ -17,6 +18,8 @@ export default function Subscribe() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -35,6 +38,15 @@ export default function Subscribe() {
 
   const handlePayPerLetter = async () => {
     if (!user) return;
+    
+    if (!acceptedTerms || !acceptedPrivacy) {
+      toast({
+        title: "Agreement Required",
+        description: "Please accept the Terms of Service and Privacy Policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsProcessing(true);
     try {
@@ -86,6 +98,15 @@ export default function Subscribe() {
 
   const handleSubscribe = async () => {
     if (!user) return;
+    
+    if (!acceptedTerms || !acceptedPrivacy) {
+      toast({
+        title: "Agreement Required",
+        description: "Please accept the Terms of Service and Privacy Policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsProcessing(true);
     try {
@@ -168,6 +189,49 @@ export default function Subscribe() {
           </div>
         </div>
 
+        {/* Terms and Privacy Agreement */}
+        <Card className="mb-8 bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Terms and Privacy Agreement</h3>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                  data-testid="checkbox-terms"
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-gray-700 leading-relaxed cursor-pointer"
+                >
+                  I have read and agree to the{" "}
+                  <a href="#" className="text-blue-600 hover:underline">
+                    Terms of Service
+                  </a>
+                </label>
+              </div>
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="privacy"
+                  checked={acceptedPrivacy}
+                  onCheckedChange={setAcceptedPrivacy}
+                  data-testid="checkbox-privacy"
+                />
+                <label
+                  htmlFor="privacy"
+                  className="text-sm text-gray-700 leading-relaxed cursor-pointer"
+                >
+                  I have read and agree to the{" "}
+                  <a href="#" className="text-blue-600 hover:underline">
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* Pay-per-letter option */}
           <Card className="relative border-2 hover:border-blue-200 transition-colors">
@@ -207,7 +271,8 @@ export default function Subscribe() {
                 onClick={handlePayPerLetter} 
                 variant="outline" 
                 className="w-full"
-                disabled={isProcessing}
+                disabled={isProcessing || !acceptedTerms || !acceptedPrivacy}
+                data-testid="button-pay-per-letter"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Send Single Letter
@@ -263,7 +328,8 @@ export default function Subscribe() {
               <Button 
                 onClick={handleSubscribe} 
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={isProcessing}
+                disabled={isProcessing || !acceptedTerms || !acceptedPrivacy}
+                data-testid="button-subscribe"
               >
                 {isProcessing ? (
                   <>

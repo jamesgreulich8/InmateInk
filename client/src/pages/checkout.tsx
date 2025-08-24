@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Navigation } from "@/components/Navigation";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
@@ -20,9 +21,21 @@ const CheckoutForm = () => {
   const elements = useElements();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!acceptedTerms || !acceptedPrivacy) {
+      toast({
+        title: "Agreement Required",
+        description: "Please accept the Terms of Service and Privacy Policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     if (!stripe || !elements) {
@@ -63,10 +76,53 @@ const CheckoutForm = () => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PaymentElement />
+          
+          {/* Terms and Privacy Agreement */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Agreement Required</h4>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="checkout-terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={setAcceptedTerms}
+                  data-testid="checkbox-checkout-terms"
+                />
+                <label
+                  htmlFor="checkout-terms"
+                  className="text-sm text-gray-700 leading-relaxed cursor-pointer"
+                >
+                  I have read and agree to the{" "}
+                  <a href="#" className="text-blue-600 hover:underline">
+                    Terms of Service
+                  </a>
+                </label>
+              </div>
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="checkout-privacy"
+                  checked={acceptedPrivacy}
+                  onCheckedChange={setAcceptedPrivacy}
+                  data-testid="checkbox-checkout-privacy"
+                />
+                <label
+                  htmlFor="checkout-privacy"
+                  className="text-sm text-gray-700 leading-relaxed cursor-pointer"
+                >
+                  I have read and agree to the{" "}
+                  <a href="#" className="text-blue-600 hover:underline">
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
+            </div>
+          </div>
+          
           <Button 
             type="submit" 
-            disabled={!stripe || isLoading}
+            disabled={!stripe || isLoading || !acceptedTerms || !acceptedPrivacy}
             className="w-full"
+            data-testid="button-checkout-submit"
           >
             {isLoading ? "Processing..." : "Pay $2.99"}
           </Button>

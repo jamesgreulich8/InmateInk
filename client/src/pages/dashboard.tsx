@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Separator } from "@/components/ui/separator";
-import { Mail, FileText, Settings, CreditCard, CheckCircle, Clock, Truck } from "lucide-react";
+import { Mail, FileText, Settings, CreditCard, CheckCircle, Clock, Truck, Download, Eye } from "lucide-react";
 import { Link } from "wouter";
 import type { Letter } from "@shared/schema";
 
@@ -219,6 +219,9 @@ export default function Dashboard() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
                           Status
                         </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
@@ -239,6 +242,26 @@ export default function Dashboard() {
                               <Badge className={getStatusColor(letter.status)}>
                                 {letter.status.charAt(0).toUpperCase() + letter.status.slice(1)}
                               </Badge>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(`/api/letters/${letter.id}/preview`, '_blank')}
+                                data-testid={`button-preview-${letter.id}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(`/api/letters/${letter.id}/pdf`, '_blank')}
+                                data-testid={`button-download-${letter.id}`}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
                             </div>
                           </td>
                         </tr>

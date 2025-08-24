@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertLetterSchema } from "@shared/schema";
 import emailService from './emailService';
+import { generateLetterPDF, generateLetterPreview } from './pdfGenerator';
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -660,6 +661,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating letter status:", error);
       res.status(500).json({ message: "Failed to update letter status" });
+    }
+  });
+
+  // PDF Generation routes
+  app.post('/api/letters/:id/preview', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const letter = await storage.getLetter(id);
+      
+      if (!letter) {
+        return res.status(404).json({ message: "Letter not found" });
+      }
+
+      // Check if user owns the letter or is admin
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (letter.userId !== userId && !user?.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const letterData = {
+        senderFirstName: user?.firstName || null,
+        senderLastName: user?.lastName || null,
+        senderAddress: undefined, // Address field not in schema
+        recipientFirstName: letter.recipientFirstName,
+        recipientLastName: letter.recipientLastName,
+        recipientId: letter.recipientId,
+        facilityName: letter.facilityName,
+        facilityAddress: letter.facilityAddress,
+        subject: letter.subject,
+        content: letter.content,
+        date: letter.createdAt ? new Date(letter.createdAt) : new Date()
+      };
+
+      const previewHtml = generateLetterPreview(letterData);
+      res.setHeader('Content-Type', 'text/html');
+      res.send(previewHtml);
+    } catch (error) {
+      console.error("Error generating letter preview:", error);
+      res.status(500).json({ message: "Failed to generate preview" });
+    }
+  });
+
+  app.post('/api/letters/:id/pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const letter = await storage.getLetter(id);
+      
+      if (!letter) {
+        return res.status(404).json({ message: "Letter not found" });
+      }
+
+      // Check if user owns the letter or is admin
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (letter.userId !== userId && !user?.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const letterData = {
+        senderFirstName: user?.firstName || null,
+        senderLastName: user?.lastName || null,
+        senderAddress: undefined, // Address field not in schema
+        recipientFirstName: letter.recipientFirstName,
+        recipientLastName: letter.recipientLastName,
+        recipientId: letter.recipientId,
+        facilityName: letter.facilityName,
+        facilityAddress: letter.facilityAddress,
+        subject: letter.subject,
+        content: letter.content,
+        date: letter.createdAt ? new Date(letter.createdAt) : new Date()
+      };
+
+      const pdfBuffer = generateLetterPDF(letterData);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="letter-${letter.id.slice(-8)}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
+  // Live preview route for compose page
+  app.post('/api/preview-letter', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const {
+        subject,
+        content,
+        recipientFirstName,
+        recipientLastName,
+        recipientId,
+        facilityName,
+        facilityAddress
+      } = req.body;
+
+      const letterData = {
+        senderFirstName: user?.firstName || null,
+        senderLastName: user?.lastName || null,
+        senderAddress: undefined, // Address field not in schema
+        recipientFirstName,
+        recipientLastName,
+        recipientId,
+        facilityName,
+        facilityAddress,
+        subject,
+        content,
+        date: new Date()
+      };
+
+      const previewHtml = generateLetterPreview(letterData);
+      res.setHeader('Content-Type', 'text/html');
+      res.send(previewHtml);
+    } catch (error) {
+      console.error("Error generating preview:", error);
+      res.status(500).json({ message: "Failed to generate preview" });
     }
   });
 

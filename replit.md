@@ -2,7 +2,14 @@
 
 ## Overview
 
-This is a full-stack web application that provides a digital mail service for sending letters to incarcerated individuals. Users can compose letters online, and the service handles printing and physical delivery to correctional facilities. The application features subscription-based pricing, content moderation, and administrative oversight.
+This is a full-stack web application that provides a digital mail service for sending letters to incarcerated individuals. Users can compose letters online, and the service handles printing and physical delivery to correctional facilities. The application features subscription-based pricing, content moderation, administrative oversight, and print-ready PDF generation.
+
+## Recent Updates (August 2025)
+
+- **PDF Generation System**: Added complete PDF generation with print-ready formatting for 8.5x11 paper
+- **Letter Preview**: Users can preview formatted letters before submission in both compose and dashboard views
+- **Free Pay-Per-Letter**: Changed pay-per-letter pricing to $0.00 for testing email notification functionality
+- **Email Notifications**: Fully functional Gmail SMTP integration with admin alerts and user confirmations
 
 ## User Preferences
 
@@ -77,8 +84,16 @@ Preferred communication style: Simple, everyday language.
 
 ### Key Libraries
 - **Frontend**: React, TanStack Query, React Hook Form, Radix UI, Tailwind CSS
-- **Backend**: Express.js, Drizzle ORM, Passport.js, Stripe SDK
+- **Backend**: Express.js, Drizzle ORM, Passport.js, Stripe SDK, jsPDF for PDF generation
 - **Shared**: Zod for validation, date-fns for date handling
+
+### PDF Generation System
+- **Compliance-Ready Formatting**: Professional letter format meeting correctional facility requirements
+- **Standard Paper Size**: 8.5x11 inch letter format with proper margins and spacing
+- **Complete Layout**: Sender info (top-left), recipient info (top-right), date, subject, body with paragraph indentation, signature line
+- **Multi-page Support**: Automatic page breaks for longer letters with consistent formatting
+- **Preview Functionality**: HTML preview matching PDF layout for user validation before submission
+- **Download Options**: Direct PDF download from dashboard and admin panel
 
 ### Development Dependencies
 - **TypeScript**: Type safety across the stack

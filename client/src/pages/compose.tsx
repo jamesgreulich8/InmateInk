@@ -12,8 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Navigation } from "@/components/Navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
 
@@ -36,6 +37,8 @@ export default function Compose() {
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [wordCount, setWordCount] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -103,6 +106,45 @@ export default function Compose() {
 
   const onSubmit = (data: LetterFormData) => {
     createLetterMutation.mutate(data);
+  };
+
+  const previewLetter = async () => {
+    const formData = form.getValues();
+    
+    // Validate required fields for preview
+    if (!formData.content || !formData.recipientFirstName || !formData.recipientLastName || 
+        !formData.recipientId || !formData.facilityName || !formData.facilityAddress) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields to preview the letter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/preview-letter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        setPreviewHtml(html);
+        setPreviewOpen(true);
+      } else {
+        throw new Error('Failed to generate preview');
+      }
+    } catch (error) {
+      toast({
+        title: "Preview Error",
+        description: "Failed to generate letter preview. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Update word count when content changes
@@ -324,12 +366,40 @@ export default function Compose() {
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end">
+              {/* Action Buttons */}
+              <div className="flex gap-4 justify-end">
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={previewLetter}
+                      className="px-8"
+                      data-testid="button-preview"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview Letter
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+                    <DialogHeader>
+                      <DialogTitle>Letter Preview</DialogTitle>
+                    </DialogHeader>
+                    <div className="overflow-auto max-h-[80vh] border rounded-lg">
+                      <iframe
+                        srcDoc={previewHtml}
+                        className="w-full h-[600px] border-0"
+                        title="Letter Preview"
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                
                 <Button 
                   type="submit" 
                   disabled={createLetterMutation.isPending}
                   className="px-8"
+                  data-testid="button-submit"
                 >
                   {createLetterMutation.isPending ? "Creating..." : "Create Letter"}
                 </Button>

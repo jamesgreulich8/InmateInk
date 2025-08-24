@@ -13,12 +13,27 @@ import Subscribe from "@/pages/subscribe";
 import Admin from "@/pages/admin";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
+import VerifyEmail from "@/pages/verify-email";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
+      {/* Public routes - always accessible */}
+      <Route path="/auth/login" component={Login} />
+      <Route path="/auth/register" component={Register} />
+      <Route path="/auth/forgot-password" component={ForgotPassword} />
+      <Route path="/auth/reset-password" component={ResetPassword} />
+      <Route path="/auth/verify-email" component={VerifyEmail} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
+      
+      {/* Conditional routes based on authentication */}
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
@@ -29,12 +44,9 @@ function Router() {
           <Route path="/checkout" component={Checkout} />
           <Route path="/subscribe" component={Subscribe} />
           <Route path="/admin" component={Admin} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/privacy" component={Privacy} />
         </>
       )}
-      <Route path="/terms" component={Terms} />
-      <Route path="/privacy" component={Privacy} />
+      
       <Route component={NotFound} />
     </Switch>
   );

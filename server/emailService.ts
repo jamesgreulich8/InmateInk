@@ -21,14 +21,14 @@ const emailService = {
   async sendStatusUpdate(user: User, letter: Letter, newStatus: string, rejectionReason?: string) {
     if (!user.email) return;
 
-    const statusMessages = {
+    const statusMessages: Record<string, string> = {
       pending: 'Your letter is being reviewed and will be processed soon.',
       approved: 'Your letter has been approved and is being prepared for delivery.',
       delivered: 'Your letter has been successfully delivered to the recipient.',
       rejected: `Your letter could not be processed. ${rejectionReason || 'Please review our content guidelines and try again.'}`,
     };
 
-    const statusColors = {
+    const statusColors: Record<string, string> = {
       pending: '#F59E0B',
       approved: '#10B981', 
       delivered: '#059669',
@@ -291,6 +291,114 @@ ${letter.content}
         <p>You can now compose and send your letter from your dashboard.</p>
         <p>Thank you for using our service!</p>
       </div>`
+    });
+  },
+
+  // Send email verification link
+  async sendEmailVerification(user: User, token: string) {
+    if (!user.email) return;
+
+    const verificationUrl = `${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/auth/verify-email?token=${token}`;
+    const subject = 'Verify Your Email Address - Inmate Mail Service';
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #111827; margin: 0; font-size: 28px;">Verify Your Email Address</h1>
+          <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Inmate Mail Service</p>
+        </div>
+
+        <div style="background: #F9FAFB; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+          <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${user.firstName || 'there'},</p>
+          <p style="margin: 0 0 16px 0; font-size: 16px;">Thank you for signing up for Inmate Mail Service. To get started, please verify your email address by clicking the button below:</p>
+        </div>
+
+        <div style="text-align: center; padding: 20px 0;">
+          <a href="${verificationUrl}" 
+             style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Verify Email Address
+          </a>
+        </div>
+
+        <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400E; font-size: 14px;">
+            <strong>Note:</strong> This link will expire in 24 hours. If you didn't create this account, you can safely ignore this email.
+          </p>
+        </div>
+
+        <div style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 20px;">
+          <p>If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="${verificationUrl}" style="color: #3B82F6; word-break: break-all;">${verificationUrl}</a></p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await this.sendEmail({
+      to: user.email,
+      subject,
+      html,
+    });
+  },
+
+  // Send password reset link
+  async sendPasswordReset(user: User, token: string) {
+    if (!user.email) return;
+
+    const resetUrl = `${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/auth/reset-password?token=${token}`;
+    const subject = 'Reset Your Password - Inmate Mail Service';
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #111827; margin: 0; font-size: 28px;">Reset Your Password</h1>
+          <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Inmate Mail Service</p>
+        </div>
+
+        <div style="background: #F9FAFB; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+          <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${user.firstName || 'there'},</p>
+          <p style="margin: 0 0 16px 0; font-size: 16px;">We received a request to reset your password. Click the button below to create a new password:</p>
+        </div>
+
+        <div style="text-align: center; padding: 20px 0;">
+          <a href="${resetUrl}" 
+             style="background: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+
+        <div style="background: #FEF2F2; border: 1px solid #F87171; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0; color: #991B1B; font-size: 14px;">
+            <strong>Security Notice:</strong> This link will expire in 24 hours. If you didn't request this reset, please ignore this email and your password will remain unchanged.
+          </p>
+        </div>
+
+        <div style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 20px;">
+          <p>If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="${resetUrl}" style="color: #DC2626; word-break: break-all;">${resetUrl}</a></p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await this.sendEmail({
+      to: user.email,
+      subject,
+      html,
     });
   },
 

@@ -2,12 +2,16 @@ import {
   users,
   letters,
   contentFilters,
+  passwordResetTokens,
+  emailVerificationTokens,
   type User,
   type UpsertUser,
   type Letter,
   type InsertLetter,
   type ContentFilter,
   type InsertContentFilter,
+  type PasswordResetToken,
+  type EmailVerificationToken,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -23,6 +27,22 @@ export interface IStorage {
   updateUserLetterCount(id: string, count: number): Promise<User>;
   updateUser(userId: string, data: Partial<User>): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  
+  // Local auth operations
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(userData: UpsertUser): Promise<User>;
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
+  markUserEmailVerified(userId: string): Promise<User | undefined>;
+  
+  // Password reset tokens
+  createPasswordResetToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenUsed(tokenId: string): Promise<void>;
+  
+  // Email verification tokens
+  createEmailVerificationToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void>;
+  getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined>;
+  markEmailVerificationTokenUsed(tokenId: string): Promise<void>;
   
   // Letter operations
   createLetter(letter: InsertLetter & { userId: string }): Promise<Letter>;
@@ -122,6 +142,73 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  // Local auth operations
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        passwordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async markUserEmailVerified(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isEmailVerified: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  // Password reset tokens
+  async createPasswordResetToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void> {
+    await db.insert(passwordResetTokens).values(data);
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token));
+    return resetToken;
+  }
+
+  async markPasswordResetTokenUsed(tokenId: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ used: true })
+      .where(eq(passwordResetTokens.id, tokenId));
+  }
+
+  // Email verification tokens
+  async createEmailVerificationToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void> {
+    await db.insert(emailVerificationTokens).values(data);
+  }
+
+  async getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined> {
+    const [verificationToken] = await db.select().from(emailVerificationTokens).where(eq(emailVerificationTokens.token, token));
+    return verificationToken;
+  }
+
+  async markEmailVerificationTokenUsed(tokenId: string): Promise<void> {
+    await db
+      .update(emailVerificationTokens)
+      .set({ used: true })
+      .where(eq(emailVerificationTokens.id, tokenId));
   }
 
   // Letter operations

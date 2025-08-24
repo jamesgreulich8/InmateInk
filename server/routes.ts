@@ -3,9 +3,10 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertLetterSchema } from "@shared/schema";
+import { insertLetterSchema, registerSchema, loginSchema, resetPasswordRequestSchema, resetPasswordSchema } from "@shared/schema";
 import emailService from './emailService';
 import { generateLetterPDF, generateLetterPreview } from './pdfGenerator';
+import { authService } from './authService';
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -156,6 +157,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Local authentication routes
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const validatedData = registerSchema.parse(req.body);
+      const { user, verificationToken } = await authService.register(validatedData);
+      
+      res.status(201).json({
+        message: 'Registration successful. Please check your email to verify your account.',
+        userId: user.id,
+        email: user.email,
+      });
+    } catch (error: any) {
+      if (error.message.includes('email already exists')) {
+        return res.status(409).json({ message: error.message });
+      }
+      console.error('Registration error:', error);
+      res.status(400).json({ message: error.message || 'Registration failed' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      const user = await authService.login(validatedData);
+      
+      // Create session (compatible with existing session structure)
+      (req.session as any).user = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        authProvider: 'local',
+      };
+      
+      res.json({
+        message: 'Login successful',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      res.status(401).json({ message: error.message || 'Login failed' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Logout failed' });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: 'Logout successful' });
+    });
+  });
+
+  app.post('/api/auth/request-password-reset', async (req, res) => {
+    try {
+      const validatedData = resetPasswordRequestSchema.parse(req.body);
+      await authService.createPasswordResetToken(validatedData.email);
+      
+      // Always return success to prevent email enumeration
+      res.json({
+        message: 'If an account with this email exists, you will receive a password reset link.',
+      });
+    } catch (error: any) {
+      console.error('Password reset request error:', error);
+      res.status(500).json({ message: 'Failed to process password reset request' });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const validatedData = resetPasswordSchema.parse(req.body);
+      await authService.resetPassword(validatedData.token, validatedData.password);
+      
+      res.json({ message: 'Password reset successful. You can now log in with your new password.' });
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      res.status(400).json({ message: error.message || 'Password reset failed' });
+    }
+  });
+
+  app.get('/api/auth/verify-email', async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: 'Invalid verification token' });
+      }
+      
+      const user = await authService.verifyEmail(token);
+      res.json({
+        message: 'Email verified successfully. You can now log in.',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      });
+    } catch (error: any) {
+      console.error('Email verification error:', error);
+      res.status(400).json({ message: error.message || 'Email verification failed' });
+    }
+  });
+
+  app.post('/api/auth/resend-verification', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+      
+      await authService.resendEmailVerification(email);
+      res.json({ message: 'Verification email sent successfully.' });
+    } catch (error: any) {
+      console.error('Resend verification error:', error);
+      res.status(400).json({ message: error.message || 'Failed to resend verification email' });
     }
   });
 

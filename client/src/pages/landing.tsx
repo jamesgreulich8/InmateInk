@@ -5,7 +5,11 @@ import { CheckCircle, Mail, CreditCard, FileText, Shield } from "lucide-react";
 
 export default function Landing() {
   const handleGetStarted = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/auth/register";
+  };
+
+  const handleLogin = () => {
+    window.location.href = "/auth/login";
   };
 
   const scrollToSection = (sectionId: string) => {
@@ -41,10 +45,10 @@ export default function Landing() {
                   <div className="mt-3 sm:mt-0 sm:ml-3">
                     <Button 
                       variant="outline"
-                      onClick={() => scrollToSection('how-it-works')}
+                      onClick={handleLogin}
                       className="w-full flex items-center justify-center px-8 py-3 text-base font-medium md:py-4 md:text-lg md:px-10"
                     >
-                      Learn More
+                      Sign In
                     </Button>
                   </div>
                 </div>

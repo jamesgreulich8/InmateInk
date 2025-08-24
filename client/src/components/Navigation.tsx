@@ -12,11 +12,11 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
   const { user } = useAuth();
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/auth/login";
   };
 
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    window.location.href = "/api/auth/logout";
   };
 
   return (
@@ -80,7 +80,7 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
                 <Button variant="ghost" onClick={handleLogin}>
                   Sign In
                 </Button>
-                <Button onClick={handleLogin}>
+                <Button onClick={() => window.location.href = "/auth/register"}>
                   Get Started
                 </Button>
               </>

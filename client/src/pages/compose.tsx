@@ -18,6 +18,14 @@ import { ArrowLeft, Eye } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
 
+// Utility function to capitalize first letter of each word
+const capitalizeNames = (name: string): string => {
+  return name.trim()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const letterSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   content: z.string().min(10, "Letter content must be at least 10 characters"),
@@ -71,7 +79,13 @@ export default function Compose() {
 
   const createLetterMutation = useMutation({
     mutationFn: async (data: LetterFormData) => {
-      const response = await apiRequest("POST", "/api/letters", data);
+      // Automatically capitalize names before sending
+      const formattedData = {
+        ...data,
+        recipientFirstName: capitalizeNames(data.recipientFirstName),
+        recipientLastName: capitalizeNames(data.recipientLastName),
+      };
+      const response = await apiRequest("POST", "/api/letters", formattedData);
       return response.json();
     },
     onSuccess: (letter) => {
@@ -122,13 +136,20 @@ export default function Compose() {
       return;
     }
 
+    // Automatically capitalize names for preview
+    const formattedData = {
+      ...formData,
+      recipientFirstName: capitalizeNames(formData.recipientFirstName),
+      recipientLastName: capitalizeNames(formData.recipientLastName),
+    };
+
     try {
       const response = await fetch('/api/preview-letter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formattedData),
       });
 
       if (response.ok) {

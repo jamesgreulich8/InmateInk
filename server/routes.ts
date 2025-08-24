@@ -15,6 +15,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-07-30.basil",
 });
 
+// Add capitalization utility function
+const capitalizeNames = (name: string): string => {
+  if (!name || typeof name !== 'string') return name;
+  return name.trim()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 // Comprehensive content filtering for correctional facility compliance
 function filterContent(content: string): { flaggedWords: string[], severity: 'low' | 'medium' | 'high', requiresReview: boolean, reasons: string[] } {
   const text = content.toLowerCase();
@@ -379,9 +388,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter content
       const contentFilter = filterContent(letterData.content);
       
+      // Automatically capitalize names before creating letter
+      const formattedLetterData = {
+        ...letterData,
+        recipientFirstName: capitalizeNames(letterData.recipientFirstName),
+        recipientLastName: capitalizeNames(letterData.recipientLastName),
+      };
+      
       // Create letter
       const letter = await storage.createLetter({
-        ...letterData,
+        ...formattedLetterData,
         userId,
         status: contentFilter.requiresReview ? 'pending' : 'approved',
       } as any);
@@ -686,8 +702,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderFirstName: user?.firstName || null,
         senderLastName: user?.lastName || null,
         senderAddress: undefined, // Address field not in schema
-        recipientFirstName: letter.recipientFirstName,
-        recipientLastName: letter.recipientLastName,
+        recipientFirstName: capitalizeNames(letter.recipientFirstName),
+        recipientLastName: capitalizeNames(letter.recipientLastName),
         recipientId: letter.recipientId,
         facilityName: letter.facilityName,
         facilityAddress: letter.facilityAddress,
@@ -726,8 +742,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderFirstName: user?.firstName || null,
         senderLastName: user?.lastName || null,
         senderAddress: undefined, // Address field not in schema
-        recipientFirstName: letter.recipientFirstName,
-        recipientLastName: letter.recipientLastName,
+        recipientFirstName: capitalizeNames(letter.recipientFirstName),
+        recipientLastName: capitalizeNames(letter.recipientLastName),
         recipientId: letter.recipientId,
         facilityName: letter.facilityName,
         facilityAddress: letter.facilityAddress,
@@ -771,8 +787,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderFirstName: user?.firstName || null,
         senderLastName: user?.lastName || null,
         senderAddress: undefined, // Address field not in schema
-        recipientFirstName,
-        recipientLastName,
+        recipientFirstName: capitalizeNames(recipientFirstName),
+        recipientLastName: capitalizeNames(recipientLastName),
         recipientId,
         facilityName,
         facilityAddress,

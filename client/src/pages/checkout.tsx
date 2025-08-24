@@ -85,7 +85,7 @@ const CheckoutForm = () => {
                 <Checkbox
                   id="checkout-terms"
                   checked={acceptedTerms}
-                  onCheckedChange={setAcceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
                   data-testid="checkbox-checkout-terms"
                 />
                 <label
@@ -93,7 +93,7 @@ const CheckoutForm = () => {
                   className="text-sm text-gray-700 leading-relaxed cursor-pointer"
                 >
                   I have read and agree to the{" "}
-                  <a href="#" className="text-blue-600 hover:underline">
+                  <a href="/terms" target="_blank" className="text-blue-600 hover:underline">
                     Terms of Service
                   </a>
                 </label>
@@ -102,7 +102,7 @@ const CheckoutForm = () => {
                 <Checkbox
                   id="checkout-privacy"
                   checked={acceptedPrivacy}
-                  onCheckedChange={setAcceptedPrivacy}
+                  onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
                   data-testid="checkbox-checkout-privacy"
                 />
                 <label
@@ -110,7 +110,7 @@ const CheckoutForm = () => {
                   className="text-sm text-gray-700 leading-relaxed cursor-pointer"
                 >
                   I have read and agree to the{" "}
-                  <a href="#" className="text-blue-600 hover:underline">
+                  <a href="/privacy" target="_blank" className="text-blue-600 hover:underline">
                     Privacy Policy
                   </a>
                 </label>

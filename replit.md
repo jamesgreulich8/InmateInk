@@ -10,6 +10,7 @@ This is a full-stack web application that provides a digital mail service for se
 - **Letter Preview**: Users can preview formatted letters before submission in both compose and dashboard views
 - **Free Pay-Per-Letter**: Changed pay-per-letter pricing to $0.00 for testing email notification functionality
 - **Email Notifications**: Fully functional Gmail SMTP integration with admin alerts and user confirmations
+- **Terms of Service & Privacy Policy**: Added required checkbox acceptance at checkout and subscription signup with dedicated legal pages
 
 ## User Preferences
 
@@ -62,11 +63,12 @@ Preferred communication style: Simple, everyday language.
 ### Payment Integration
 - **Provider**: Stripe for payment processing with full integration
 - **Subscription Model**: $9.99/month for 4 letters with automatic billing
-- **Pay-per-letter**: $3.99 per single letter with one-time checkout
+- **Pay-per-letter**: $3.99 per single letter with one-time checkout (currently FREE for testing)
 - **Dynamic Pricing**: Uses Stripe's price_data for flexible product creation
 - **Webhooks**: Automated subscription status updates and payment confirmations
 - **Customer Management**: Automatic Stripe customer creation and linking
 - **Checkout Flow**: Hosted Stripe checkout with success/cancel redirects
+- **Legal Compliance**: Required Terms of Service and Privacy Policy acceptance before payment
 
 ### Development Tooling
 - **Build System**: Vite for frontend, esbuild for backend bundling

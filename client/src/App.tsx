@@ -11,6 +11,8 @@ import Compose from "@/pages/compose";
 import Checkout from "@/pages/checkout";
 import Subscribe from "@/pages/subscribe";
 import Admin from "@/pages/admin";
+import Terms from "@/pages/terms";
+import Privacy from "@/pages/privacy";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -27,8 +29,12 @@ function Router() {
           <Route path="/checkout" component={Checkout} />
           <Route path="/subscribe" component={Subscribe} />
           <Route path="/admin" component={Admin} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/privacy" component={Privacy} />
         </>
       )}
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
       <Route component={NotFound} />
     </Switch>
   );

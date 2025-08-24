@@ -206,16 +206,18 @@ export default function Subscribe() {
                   className="text-sm text-gray-700 leading-relaxed cursor-pointer"
                 >
                   I have read and agree to the{" "}
-                  <a href="#" className="text-blue-600 hover:underline">
-                    Terms of Service
-                  </a>
+                  <Link href="/terms">
+                    <a className="text-blue-600 hover:underline">
+                      Terms of Service
+                    </a>
+                  </Link>
                 </label>
               </div>
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="privacy"
                   checked={acceptedPrivacy}
-                  onCheckedChange={setAcceptedPrivacy}
+                  onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
                   data-testid="checkbox-privacy"
                 />
                 <label
@@ -223,9 +225,11 @@ export default function Subscribe() {
                   className="text-sm text-gray-700 leading-relaxed cursor-pointer"
                 >
                   I have read and agree to the{" "}
-                  <a href="#" className="text-blue-600 hover:underline">
-                    Privacy Policy
-                  </a>
+                  <Link href="/privacy">
+                    <a className="text-blue-600 hover:underline">
+                      Privacy Policy
+                    </a>
+                  </Link>
                 </label>
               </div>
             </div>

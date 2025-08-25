@@ -88,16 +88,16 @@ export default function VerifyEmail() {
               <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
-              <CardTitle className="text-green-900">Email Verified!</CardTitle>
+              <CardTitle className="text-green-900">Email Successfully Verified!</CardTitle>
               <CardDescription>
-                Your email address has been successfully verified. You can now access all features of your account.
+                Congratulations! You have successfully verified your email address. Your account is now active and you can sign in to start using the Inmate Mail Service.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-2">
                 <Link href="/auth/login">
                   <Button className="w-full" data-testid="button-go-to-login">
-                    Sign In to Your Account
+                    Return to Sign In
                   </Button>
                 </Link>
                 

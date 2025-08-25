@@ -38,6 +38,7 @@ export interface IStorage {
   createPasswordResetToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenUsed(tokenId: string): Promise<void>;
+  invalidatePasswordResetTokensForUser(userId: string): Promise<void>;
   
   // Email verification tokens
   createEmailVerificationToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void>;
@@ -194,6 +195,13 @@ export class DatabaseStorage implements IStorage {
       .update(passwordResetTokens)
       .set({ used: true })
       .where(eq(passwordResetTokens.id, tokenId));
+  }
+
+  async invalidatePasswordResetTokensForUser(userId: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ used: true })
+      .where(eq(passwordResetTokens.userId, userId));
   }
 
   // Email verification tokens

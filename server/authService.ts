@@ -89,6 +89,10 @@ export class AuthService {
       return '';
     }
 
+    // First, invalidate any existing password reset tokens for this user
+    await storage.invalidatePasswordResetTokensForUser(user.id);
+
+    // Create a fresh token with proper expiry
     const token = this.generateSecureToken();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + AuthService.TOKEN_EXPIRY_HOURS);
@@ -112,24 +116,8 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    console.log('Frontend submitted token:', token);
-    console.log('Token length:', token.length);
-    console.log('Token type:', typeof token);
-    
     const resetToken = await storage.getPasswordResetToken(token);
-    
-    if (!resetToken) {
-      console.log('No token found in database');
-      throw new Error('Invalid or expired reset token');
-    }
-    
-    if (resetToken.used) {
-      console.log('Token already used');
-      throw new Error('Invalid or expired reset token');
-    }
-    
-    if (new Date() > resetToken.expiresAt) {
-      console.log('Token expired');
+    if (!resetToken || resetToken.used || new Date() > resetToken.expiresAt) {
       throw new Error('Invalid or expired reset token');
     }
 

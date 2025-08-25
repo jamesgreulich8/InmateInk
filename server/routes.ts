@@ -258,9 +258,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
+      console.log('Reset password request received:', req.body);
       const validatedData = resetPasswordSchema.parse(req.body);
+      console.log('Validation successful, calling authService.resetPassword...');
       await authService.resetPassword(validatedData.token, validatedData.password);
       
+      console.log('Password reset completed successfully');
       res.json({ message: 'Password reset successful. You can now log in with your new password.' });
     } catch (error: any) {
       console.error('Password reset error:', error);

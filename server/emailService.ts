@@ -94,7 +94,7 @@ const emailService = {
         <div style="text-align: center; padding: 20px 0; border-top: 1px solid #E5E7EB;">
           <a href="${process.env.REPLIT_DOMAINS 
             ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
-            : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`}/dashboard" 
+            : 'https://jail-mail.com'}/dashboard" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
             View Dashboard
           </a>
@@ -190,7 +190,7 @@ ${letter.content}
         <div style="text-align: center; padding: 20px 0; border-top: 1px solid #E5E7EB;">
           <a href="${process.env.REPLIT_DOMAINS 
             ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
-            : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`}/admin" 
+            : 'https://jail-mail.com'}/admin" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
             Review in Admin Panel
           </a>
@@ -251,7 +251,7 @@ ${letter.content}
         <div style="text-align: center; padding: 20px 0;">
           <a href="${process.env.REPLIT_DOMAINS 
             ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
-            : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`}/compose" 
+            : 'https://jail-mail.com'}/compose" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
             Send Your First Letter
           </a>
@@ -306,7 +306,7 @@ ${letter.content}
 
     const baseUrl = process.env.REPLIT_DOMAINS 
       ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
-      : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      : 'https://jail-mail.com';
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
     const subject = 'Verify Your Email Address - Inmate Mail Service';
     
@@ -363,7 +363,7 @@ ${letter.content}
 
     const baseUrl = process.env.REPLIT_DOMAINS 
       ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
-      : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      : 'https://jail-mail.com';
     const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
     const subject = 'Reset Your Password - Inmate Mail Service';
     

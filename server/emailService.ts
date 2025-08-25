@@ -92,7 +92,9 @@ const emailService = {
         ` : ''}
 
         <div style="text-align: center; padding: 20px 0; border-top: 1px solid #E5E7EB;">
-          <a href="${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/dashboard" 
+          <a href="${process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+            : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`}/dashboard" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
             View Dashboard
           </a>
@@ -186,7 +188,9 @@ ${letter.content}
         </div>
 
         <div style="text-align: center; padding: 20px 0; border-top: 1px solid #E5E7EB;">
-          <a href="${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/admin" 
+          <a href="${process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+            : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`}/admin" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
             Review in Admin Panel
           </a>
@@ -245,7 +249,9 @@ ${letter.content}
         </div>
 
         <div style="text-align: center; padding: 20px 0;">
-          <a href="${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/compose" 
+          <a href="${process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+            : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`}/compose" 
              style="background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
             Send Your First Letter
           </a>
@@ -298,7 +304,10 @@ ${letter.content}
   async sendEmailVerification(user: User, token: string) {
     if (!user.email) return;
 
-    const verificationUrl = `${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/auth/verify-email?token=${token}`;
+    const baseUrl = process.env.REPLIT_DOMAINS 
+      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+      : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
     const subject = 'Verify Your Email Address - Inmate Mail Service';
     
     const html = `
@@ -352,7 +361,10 @@ ${letter.content}
   async sendPasswordReset(user: User, token: string) {
     if (!user.email) return;
 
-    const resetUrl = `${process.env.REPLIT_DOMAIN || 'https://your-app.replit.app'}/auth/reset-password?token=${token}`;
+    const baseUrl = process.env.REPLIT_DOMAINS 
+      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+      : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
     const subject = 'Reset Your Password - Inmate Mail Service';
     
     const html = `

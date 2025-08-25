@@ -25,6 +25,19 @@ const capitalizeNames = (name: string): string => {
     .join(' ');
 };
 
+// Helper function to get user ID from either authentication method
+const getUserId = (req: any): string | null => {
+  // Check local auth session first
+  if (req.session?.user?.id) {
+    return req.session.user.id;
+  }
+  // Check Replit auth
+  if (req.user?.claims?.sub) {
+    return req.user.claims.sub;
+  }
+  return null;
+};
+
 // Comprehensive content filtering for correctional facility compliance
 function filterContent(content: string): { flaggedWords: string[], severity: 'low' | 'medium' | 'high', requiresReview: boolean, reasons: string[] } {
   const text = content.toLowerCase();
@@ -151,8 +164,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -288,7 +309,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe subscription routes
   app.post('/api/create-subscription', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user || !user.email) {
@@ -437,7 +461,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // One-time payment for single letters
   app.post('/api/create-payment', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user || !user.email) {
@@ -491,7 +518,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Letter routes
   app.post('/api/letters', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -560,7 +590,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/letters', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const letters = await storage.getLettersByUserId(userId);
       res.json(letters);
     } catch (error) {
@@ -579,7 +612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns the letter or is admin
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (letter.userId !== userId && !user?.isAdmin) {
@@ -601,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: Math.round(amount * 100), // Convert to cents
         currency: "usd",
         metadata: {
-          userId: req.user.claims.sub,
+          userId: getUserId(req),
           type: 'one-time-letter'
         }
       });
@@ -615,7 +651,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       let user = await storage.getUser(userId);
 
       if (!user) {
@@ -685,7 +724,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes
   app.get('/api/admin/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -713,7 +755,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/admin/letters', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -731,7 +776,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get detailed content filter information for admin review
   app.get('/api/admin/letters/:id/filter', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -755,7 +803,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test email endpoint for admins
   app.post('/api/admin/test-email', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -776,7 +827,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/admin/letters/:id/status', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -817,7 +871,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns the letter or is admin
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (letter.userId !== userId && !user?.isAdmin) {
@@ -857,7 +914,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns the letter or is admin
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (letter.userId !== userId && !user?.isAdmin) {
@@ -892,7 +952,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Live preview route for compose page
   app.post('/api/preview-letter', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user) {

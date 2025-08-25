@@ -298,9 +298,10 @@ ${letter.content}
   async sendEmailVerification(user: User, token: string) {
     if (!user.email) return;
 
-    // Always use jail-mail.com for production email links
+    // Always use jail-mail.com for production email links - FORCE OVERRIDE
     const baseUrl = 'https://jail-mail.com';
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+    console.log('✅ SENDING EMAIL WITH URL:', verificationUrl);
     const subject = 'Verify Your Email Address - Inmate Mail Service';
     
     const html = `

@@ -169,6 +169,22 @@ export class AuthService {
       throw new Error('Email is already verified');
     }
 
+    // Check rate limiting - ensure user can't spam verification requests
+    const existingTokens = await storage.getEmailVerificationTokensByUserId(user.id);
+    if (existingTokens.length > 0) {
+      const latestToken = existingTokens[0];
+      const tokenAge = Date.now() - latestToken.createdAt.getTime();
+      const oneMinute = 60 * 1000;
+      
+      if (tokenAge < oneMinute) {
+        const remainingSeconds = Math.ceil((oneMinute - tokenAge) / 1000);
+        throw new Error(`Please wait ${remainingSeconds} seconds before requesting another verification email`);
+      }
+    }
+
+    // Remove old verification tokens before creating new one (only after rate limit check)
+    await storage.deleteEmailVerificationTokensByUserId(user.id);
+    
     const token = await this.createEmailVerificationToken(user.id);
     await emailService.sendEmailVerification(user, token);
   }

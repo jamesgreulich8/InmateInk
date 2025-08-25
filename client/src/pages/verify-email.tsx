@@ -5,7 +5,112 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertTriangle, Loader2, Send } from "lucide-react";
+
+// Resend Verification Component
+function ResendVerificationButton() {
+  const { toast } = useToast();
+  const [email, setEmail] = useState<string>("");
+  const [showEmailInput, setShowEmailInput] = useState(false);
+
+  const resendMutation = useMutation({
+    mutationFn: async (email: string) => {
+      return await apiRequest("/api/auth/resend-verification", "POST", { email });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email inbox and spam folder for the new verification link.",
+      });
+      setShowEmailInput(false);
+      setEmail("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Resend",
+        description: error.message || "Failed to resend verification email. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleResend = () => {
+    if (!email.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address to resend verification.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    resendMutation.mutate(email.trim().toLowerCase());
+  };
+
+  if (!showEmailInput) {
+    return (
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setShowEmailInput(true)}
+        data-testid="button-show-resend-form"
+      >
+        <Send className="w-4 h-4 mr-2" />
+        Resend Verification Email
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          Enter your email address
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your-email@example.com"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          data-testid="input-resend-email"
+        />
+      </div>
+      <div className="flex space-x-2">
+        <Button
+          onClick={handleResend}
+          disabled={resendMutation.isPending}
+          className="flex-1"
+          data-testid="button-resend-verification"
+        >
+          {resendMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4 mr-2" />
+              Resend Email
+            </>
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setShowEmailInput(false);
+            setEmail("");
+          }}
+          disabled={resendMutation.isPending}
+          data-testid="button-cancel-resend"
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function VerifyEmail() {
   const { toast } = useToast();
@@ -129,20 +234,7 @@ export default function VerifyEmail() {
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-2">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  // Add resend verification logic here
-                  toast({
-                    title: "Feature Coming Soon",
-                    description: "Resend verification will be available soon.",
-                  });
-                }}
-                data-testid="button-resend-verification"
-              >
-                Resend Verification Email
-              </Button>
+              <ResendVerificationButton />
               
               <Link href="/auth/login">
                 <Button variant="ghost" className="w-full" data-testid="button-back-to-login">

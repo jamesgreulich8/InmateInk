@@ -43,6 +43,8 @@ export interface IStorage {
   createEmailVerificationToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void>;
   getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined>;
   markEmailVerificationTokenUsed(tokenId: string): Promise<void>;
+  getEmailVerificationTokensByUserId(userId: string): Promise<EmailVerificationToken[]>;
+  deleteEmailVerificationTokensByUserId(userId: string): Promise<void>;
   
   // Letter operations
   createLetter(letter: InsertLetter & { userId: string }): Promise<Letter>;
@@ -209,6 +211,20 @@ export class DatabaseStorage implements IStorage {
       .update(emailVerificationTokens)
       .set({ used: true })
       .where(eq(emailVerificationTokens.id, tokenId));
+  }
+
+  async getEmailVerificationTokensByUserId(userId: string): Promise<EmailVerificationToken[]> {
+    return await db
+      .select()
+      .from(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.userId, userId))
+      .orderBy(desc(emailVerificationTokens.createdAt));
+  }
+
+  async deleteEmailVerificationTokensByUserId(userId: string): Promise<void> {
+    await db
+      .delete(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.userId, userId));
   }
 
   // Letter operations

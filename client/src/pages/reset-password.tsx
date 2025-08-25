@@ -48,15 +48,10 @@ export default function ResetPassword() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: ResetPasswordData) => {
-      console.log('Making API request with data:', data);
       const response = await apiRequest("POST", "/api/auth/reset-password", data);
-      console.log('API response status:', response.status);
-      const result = await response.json();
-      console.log('API response data:', result);
-      return result;
+      return response.json();
     },
     onSuccess: () => {
-      console.log('Reset password success');
       setResetSuccess(true);
       toast({
         title: "Password Reset Successful",
@@ -64,7 +59,6 @@ export default function ResetPassword() {
       });
     },
     onError: (error: any) => {
-      console.error('Reset password error:', error);
       toast({
         title: "Reset Failed",
         description: error.message || "Failed to reset password",
@@ -74,9 +68,6 @@ export default function ResetPassword() {
   });
 
   const onSubmit = (data: ResetPasswordData) => {
-    console.log('Form submission data:', data);
-    console.log('Token from URL:', token);
-    console.log('Token in form:', data.token);
     resetPasswordMutation.mutate(data);
   };
 

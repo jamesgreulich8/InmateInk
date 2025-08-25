@@ -74,7 +74,7 @@ app.use((req, res, next) => {
       const isConnected = await emailService.testConnection();
       log(`Email service: ${isConnected ? 'Connected' : 'Connection failed'}`);
     } catch (error) {
-      log(`Email service error: ${error.message}`);
+      log(`Email service error: ${(error as Error).message}`);
     }
   });
 })();

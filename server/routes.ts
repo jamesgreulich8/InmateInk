@@ -263,7 +263,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
+      // 1. Network Payload - Log what we actually receive
+      console.log('=== PASSWORD RESET DEBUG ===');
+      console.log('1. NETWORK PAYLOAD received:', JSON.stringify(req.body, null, 2));
+      console.log('Token field exists:', 'token' in req.body);
+      console.log('Token value:', req.body.token);
+      console.log('Token type:', typeof req.body.token);
+      console.log('Token length:', req.body.token?.length || 0);
+      
       const validatedData = resetPasswordSchema.parse(req.body);
+      console.log('2. VALIDATION passed - token in validated data:', validatedData.token);
+      
       await authService.resetPassword(validatedData.token, validatedData.password);
       
       res.json({ message: 'Password reset successful. You can now log in with your new password.' });

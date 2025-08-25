@@ -128,7 +128,21 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
+    console.log('3. BACKEND SERVICE - Token received:', token);
+    console.log('Token length in service:', token.length);
+    
     const resetToken = await storage.getPasswordResetToken(token);
+    console.log('4. TOKEN LOOKUP result:', resetToken ? 'Found' : 'Not found');
+    
+    if (resetToken) {
+      console.log('Token details:', {
+        used: resetToken.used,
+        expiresAt: resetToken.expiresAt,
+        isExpired: new Date() > resetToken.expiresAt,
+        currentTime: new Date(),
+      });
+    }
+    
     if (!resetToken || resetToken.used || new Date() > resetToken.expiresAt) {
       throw new Error('Invalid or expired reset token');
     }

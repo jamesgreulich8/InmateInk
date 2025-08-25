@@ -25,6 +25,10 @@ export default function ResetPassword() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');
+    console.log('=== FRONTEND TOKEN DEBUG ===');
+    console.log('2. FRONTEND ACCESS - URL params:', window.location.search);
+    console.log('Token extracted from URL:', tokenParam);
+    console.log('Token length from URL:', tokenParam?.length || 0);
     if (tokenParam) {
       setToken(tokenParam);
     }
@@ -68,6 +72,11 @@ export default function ResetPassword() {
   });
 
   const onSubmit = (data: ResetPasswordData) => {
+    console.log('=== FORM SUBMISSION DEBUG ===');
+    console.log('Form data being submitted:', data);
+    console.log('Token in form data:', data.token);
+    console.log('Token length in form:', data.token?.length || 0);
+    console.log('Password length:', data.password?.length || 0);
     resetPasswordMutation.mutate(data);
   };
 

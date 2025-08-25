@@ -203,8 +203,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/login', async (req, res) => {
     try {
+      console.log('Login attempt for:', req.body.email);
       const validatedData = loginSchema.parse(req.body);
+      console.log('Login validation passed');
+      
       const user = await authService.login(validatedData);
+      console.log('User authentication successful:', user.id);
       
       // Create session (compatible with existing session structure)
       (req.session as any).user = {
@@ -215,6 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         authProvider: 'local',
       };
       
+      console.log('Session created successfully');
       res.json({
         message: 'Login successful',
         user: {

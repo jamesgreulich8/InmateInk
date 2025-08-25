@@ -65,20 +65,32 @@ export class AuthService {
   }
 
   async login(data: LoginData): Promise<User> {
+    console.log('AuthService: Looking up user by email:', data.email.toLowerCase());
     const user = await storage.getUserByEmail(data.email.toLowerCase());
-    if (!user || !user.passwordHash) {
+    
+    if (!user) {
+      console.log('AuthService: User not found');
+      throw new Error('Invalid email or password');
+    }
+    
+    if (!user.passwordHash) {
+      console.log('AuthService: User has no password hash');
       throw new Error('Invalid email or password');
     }
 
+    console.log('AuthService: Verifying password for user:', user.id);
     const isPasswordValid = await this.verifyPassword(data.password, user.passwordHash);
     if (!isPasswordValid) {
+      console.log('AuthService: Password verification failed');
       throw new Error('Invalid email or password');
     }
 
     if (!user.isEmailVerified) {
+      console.log('AuthService: Email not verified for user:', user.id);
       throw new Error('Please verify your email address before logging in');
     }
 
+    console.log('AuthService: Login successful for user:', user.id);
     return user;
   }
 

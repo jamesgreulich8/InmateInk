@@ -12,7 +12,7 @@ This is a full-stack web application that provides a digital mail service for se
 - **Password Reset**: Complete forgot password and reset functionality via secure email links with 24-hour expiration
 - **Authentication Pages**: Created login, register, forgot-password, reset-password, and verify-email pages with modern UI
 - **Session Management**: Enhanced session handling supporting both OAuth and local authentication with proper security
-- **Email Service Enhancement**: Updated email service with verification and password reset templates using jail-mail.com domain URLs
+- **Email Domain Fix**: Completely eliminated replit.app URLs from email verification system - all emails now use jail-mail.com domain exclusively
 - **PDF Generation System**: Added complete PDF generation with print-ready formatting for 8.5x11 paper
 - **Letter Preview**: Users can preview formatted letters before submission in both compose and dashboard views
 - **Free Pay-Per-Letter**: Changed pay-per-letter pricing to $0.00 for testing email notification functionality

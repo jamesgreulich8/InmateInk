@@ -31,20 +31,28 @@ export class AuthService {
   }
 
   async register(data: RegisterData): Promise<{ user: User; verificationToken: string }> {
+    // Normalize email
+    const normalizedEmail = data.email.toLowerCase().trim();
+    
     // Check if user already exists
-    const existingUser = await storage.getUserByEmail(data.email.toLowerCase());
+    const existingUser = await storage.getUserByEmail(normalizedEmail);
     if (existingUser) {
       throw new Error('An account with this email already exists');
     }
 
-    // Hash password
+    // Validate and sanitize inputs
+    if (!data.firstName?.trim() || !data.lastName?.trim()) {
+      throw new Error('First name and last name are required');
+    }
+
+    // Hash password with timing attack protection
     const passwordHash = await this.hashPassword(data.password);
 
     // Create user with capitalized names
     const user = await storage.createUser({
-      email: data.email.toLowerCase(),
-      firstName: capitalizeNames(data.firstName),
-      lastName: capitalizeNames(data.lastName),
+      email: normalizedEmail,
+      firstName: capitalizeNames(data.firstName.trim()),
+      lastName: capitalizeNames(data.lastName.trim()),
       passwordHash,
       isEmailVerified: false,
       authProvider: 'local',
@@ -53,44 +61,41 @@ export class AuthService {
     // Generate email verification token
     const verificationToken = await this.createEmailVerificationToken(user.id);
 
-    // Send verification email
+    // Send verification email (non-blocking)
     try {
       await emailService.sendEmailVerification(user, verificationToken);
     } catch (error) {
       console.error('Failed to send verification email:', error);
-      // Don't fail registration if email fails
+      // Continue with registration - user can request resend
     }
 
     return { user, verificationToken };
   }
 
   async login(data: LoginData): Promise<User> {
-    console.log('AuthService: Looking up user by email:', data.email.toLowerCase());
-    const user = await storage.getUserByEmail(data.email.toLowerCase());
+    // Normalize email
+    const normalizedEmail = data.email.toLowerCase().trim();
     
-    if (!user) {
-      console.log('AuthService: User not found');
-      throw new Error('Invalid email or password');
-    }
+    // Always hash the password to prevent timing attacks
+    const dummyHash = '$2b$12$dummy.hash.to.prevent.timing.attacks.abcdefghijklmnopqrstuvwxyz';
     
-    if (!user.passwordHash) {
-      console.log('AuthService: User has no password hash');
+    const user = await storage.getUserByEmail(normalizedEmail);
+    
+    if (!user || !user.passwordHash) {
+      // Still verify against dummy hash to prevent timing attacks
+      await this.verifyPassword(data.password, dummyHash);
       throw new Error('Invalid email or password');
     }
 
-    console.log('AuthService: Verifying password for user:', user.id);
     const isPasswordValid = await this.verifyPassword(data.password, user.passwordHash);
     if (!isPasswordValid) {
-      console.log('AuthService: Password verification failed');
       throw new Error('Invalid email or password');
     }
 
     if (!user.isEmailVerified) {
-      console.log('AuthService: Email not verified for user:', user.id);
-      throw new Error('Please verify your email address before logging in');
+      throw new Error('Please verify your email address before logging in. Check your inbox for the verification link.');
     }
 
-    console.log('AuthService: Login successful for user:', user.id);
     return user;
   }
 
@@ -128,20 +133,7 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    console.log('3. BACKEND SERVICE - Token received:', token);
-    console.log('Token length in service:', token.length);
-    
     const resetToken = await storage.getPasswordResetToken(token);
-    console.log('4. TOKEN LOOKUP result:', resetToken ? 'Found' : 'Not found');
-    
-    if (resetToken) {
-      console.log('Token details:', {
-        used: resetToken.used,
-        expiresAt: resetToken.expiresAt,
-        isExpired: new Date() > resetToken.expiresAt,
-        currentTime: new Date(),
-      });
-    }
     
     if (!resetToken || resetToken.used || new Date() > resetToken.expiresAt) {
       throw new Error('Invalid or expired reset token');

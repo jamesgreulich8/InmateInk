@@ -191,24 +191,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Registration successful. Please check your email to verify your account.',
         userId: user.id,
         email: user.email,
+        requiresVerification: true
       });
     } catch (error: any) {
       if (error.message.includes('email already exists')) {
-        return res.status(409).json({ message: error.message });
+        return res.status(409).json({ 
+          message: 'An account with this email already exists. Please sign in instead.',
+          action: 'redirect_to_login'
+        });
+      }
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: 'Please check your input and try again.',
+          errors: error.errors
+        });
       }
       console.error('Registration error:', error);
-      res.status(400).json({ message: error.message || 'Registration failed' });
+      res.status(400).json({ message: error.message || 'Registration failed. Please try again.' });
     }
   });
 
   app.post('/api/auth/login', async (req, res) => {
     try {
-      console.log('Login attempt for:', req.body.email);
       const validatedData = loginSchema.parse(req.body);
-      console.log('Login validation passed');
-      
       const user = await authService.login(validatedData);
-      console.log('User authentication successful:', user.id);
       
       // Create session (compatible with existing session structure)
       (req.session as any).user = {
@@ -219,7 +225,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         authProvider: 'local',
       };
       
-      console.log('Session created successfully');
       res.json({
         message: 'Login successful',
         user: {
@@ -227,11 +232,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          isAdmin: user.isAdmin || false
         },
+        redirectTo: '/dashboard'
       });
     } catch (error: any) {
-      console.error('Login error:', error);
-      res.status(401).json({ message: error.message || 'Login failed' });
+      if (error.message.includes('verify your email')) {
+        return res.status(403).json({ 
+          message: error.message,
+          action: 'email_verification_required',
+          email: req.body.email
+        });
+      }
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: 'Please check your email and password.',
+          errors: error.errors
+        });
+      }
+      res.status(401).json({ message: error.message || 'Invalid email or password' });
     }
   });
 
@@ -241,8 +260,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Logout error:', err);
         return res.status(500).json({ message: 'Logout failed' });
       }
-      res.clearCookie('connect.sid');
-      res.json({ message: 'Logout successful' });
+      res.clearCookie('connect.sid', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+      });
+      res.json({ 
+        message: 'Logout successful',
+        redirectTo: '/'
+      });
     });
   });
 
@@ -263,20 +289,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
-      // 1. Network Payload - Log what we actually receive
-      console.log('=== PASSWORD RESET DEBUG ===');
-      console.log('1. NETWORK PAYLOAD received:', JSON.stringify(req.body, null, 2));
-      console.log('Token field exists:', 'token' in req.body);
-      console.log('Token value:', req.body.token);
-      console.log('Token type:', typeof req.body.token);
-      console.log('Token length:', req.body.token?.length || 0);
-      
       const validatedData = resetPasswordSchema.parse(req.body);
-      console.log('2. VALIDATION passed - token in validated data:', validatedData.token);
-      
       await authService.resetPassword(validatedData.token, validatedData.password);
       
-      res.json({ message: 'Password reset successful. You can now log in with your new password.' });
+      res.json({ 
+        message: 'Password reset successful. You can now log in with your new password.',
+        redirectTo: '/auth/login'
+      });
     } catch (error: any) {
       console.error('Password reset error:', error);
       res.status(400).json({ message: error.message || 'Password reset failed' });

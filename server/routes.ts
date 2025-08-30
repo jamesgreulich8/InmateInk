@@ -289,15 +289,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
+      const { token, password, confirmPassword } = req.body;
+      
+      // Validate required fields
+      if (!token) {
+        return res.status(400).json({ message: 'Missing reset token' });
+      }
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required' });
+      }
+      
       const validatedData = resetPasswordSchema.parse(req.body);
-      await authService.resetPassword(validatedData.token, validatedData.password);
+      await authService.resetPassword(validatedData.token.trim(), validatedData.password);
       
       res.json({ 
         message: 'Password reset successful. You can now log in with your new password.',
         redirectTo: '/auth/login'
       });
     } catch (error: any) {
-      console.error('Password reset error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: 'Please check your input and try again.',
+          errors: error.errors
+        });
+      }
       res.status(400).json({ message: error.message || 'Password reset failed' });
     }
   });

@@ -26,7 +26,9 @@ export default function ResetPassword() {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');
     if (tokenParam) {
-      setToken(tokenParam);
+      // Ensure token is properly decoded
+      const decodedToken = decodeURIComponent(tokenParam);
+      setToken(decodedToken);
     }
   }, []);
 

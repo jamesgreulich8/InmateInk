@@ -18,12 +18,17 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
-      // Navigate to login page after successful logout
-      navigate("/auth/login");
+      
+      // Navigate to login page after successful logout (204 status)
+      if (response.ok) {
+        navigate("/auth/login");
+      } else {
+        throw new Error('Logout failed');
+      }
     } catch (error) {
       console.error("Logout error:", error);
       // Still navigate to login even if logout fails

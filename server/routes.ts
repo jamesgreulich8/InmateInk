@@ -263,12 +263,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.clearCookie('connect.sid', {
         path: '/',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
       });
-      res.json({ 
-        message: 'Logout successful',
-        redirectTo: '/'
-      });
+      res.status(204).end();
     });
   });
 

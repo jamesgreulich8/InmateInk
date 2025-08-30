@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Mail, Settings, LogOut } from "lucide-react";
 
 interface NavigationProps {
@@ -10,9 +10,10 @@ interface NavigationProps {
 
 export function Navigation({ authenticated = false, admin = false }: NavigationProps) {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
 
   const handleLogin = () => {
-    window.location.href = "/auth/login";
+    navigate("/auth/login");
   };
 
   const handleLogout = async () => {
@@ -21,12 +22,12 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
         method: "POST",
         credentials: "include",
       });
-      // Redirect to landing page after successful logout
-      window.location.href = "/";
+      // Navigate to login page after successful logout
+      navigate("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
-      // Still redirect to home even if logout fails
-      window.location.href = "/";
+      // Still navigate to login even if logout fails
+      navigate("/auth/login");
     }
   };
 

@@ -16,7 +16,7 @@ const capitalizeNames = (name: string): string => {
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 12;
-  private static readonly TOKEN_EXPIRY_HOURS = 24;
+  private static readonly TOKEN_EXPIRY_MINUTES = 30; // Short TTL for security
 
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, AuthService.SALT_ROUNDS);
@@ -109,10 +109,10 @@ export class AuthService {
     // First, invalidate any existing password reset tokens for this user
     await storage.invalidatePasswordResetTokensForUser(user.id);
 
-    // Create a fresh token with proper expiry
+    // Create a fresh token with short expiry (30 minutes)
     const token = this.generateSecureToken();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + AuthService.TOKEN_EXPIRY_HOURS);
+    expiresAt.setMinutes(expiresAt.getMinutes() + AuthService.TOKEN_EXPIRY_MINUTES);
 
     await storage.createPasswordResetToken({
       userId: user.id,
@@ -144,14 +144,14 @@ export class AuthService {
     // Update user password
     await storage.updateUserPassword(resetToken.userId, passwordHash);
     
-    // Mark token as used
-    await storage.markPasswordResetTokenUsed(resetToken.id);
+    // Delete token immediately after use for security
+    await storage.deletePasswordResetToken(resetToken.id);
   }
 
   async createEmailVerificationToken(userId: string): Promise<string> {
     const token = this.generateSecureToken();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + AuthService.TOKEN_EXPIRY_HOURS);
+    expiresAt.setMinutes(expiresAt.getMinutes() + AuthService.TOKEN_EXPIRY_MINUTES);
 
     await storage.createEmailVerificationToken({
       userId,

@@ -15,8 +15,19 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
     window.location.href = "/auth/login";
   };
 
-  const handleLogout = () => {
-    window.location.href = "/api/auth/logout";
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      // Redirect to landing page after successful logout
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Still redirect to home even if logout fails
+      window.location.href = "/";
+    }
   };
 
   return (

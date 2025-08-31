@@ -11,12 +11,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle } from "lucide-react";
 
 export default function Login() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
 
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -40,6 +42,17 @@ export default function Login() {
       window.location.href = "/dashboard";
     },
     onError: (error: any) => {
+      console.error('Login error details:', error);
+      
+      // Update attempt count and show password reset if needed
+      if (error.attemptCount) {
+        setAttemptCount(error.attemptCount);
+      }
+      
+      if (error.showPasswordReset) {
+        setShowPasswordReset(true);
+      }
+      
       toast({
         title: "Login Failed",
         description: error.message || "Invalid email or password",
@@ -127,6 +140,29 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
+
+                {showPasswordReset && (
+                  <Alert className="border-amber-200 bg-amber-50" data-testid="alert-password-reset">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800">
+                      <strong>Too many failed attempts ({attemptCount}/5)</strong>
+                      <br />
+                      Consider resetting your password if you've forgotten it.
+                      <div className="mt-2">
+                        <Link href="/auth/forgot-password">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                            data-testid="button-reset-password-suggestion"
+                          >
+                            Reset Password
+                          </Button>
+                        </Link>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="flex items-center justify-between">
                   <Link href="/auth/forgot-password">

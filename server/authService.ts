@@ -72,7 +72,7 @@ export class AuthService {
     return { user, verificationToken };
   }
 
-  async login(data: LoginData): Promise<User> {
+  async login(data: LoginData): Promise<{ user: User; attemptCount?: number; showPasswordReset?: boolean }> {
     // Normalize email
     const normalizedEmail = data.email.toLowerCase().trim();
     
@@ -82,21 +82,34 @@ export class AuthService {
     const user = await storage.getUserByEmail(normalizedEmail);
     
     if (!user || !user.passwordHash) {
-      // Still verify against dummy hash to prevent timing attacks
+      // Record failed attempt and still verify against dummy hash to prevent timing attacks
+      const attempt = await storage.recordLoginAttempt(normalizedEmail);
       await this.verifyPassword(data.password, dummyHash);
+      
+      const showPasswordReset = attempt.attemptCount >= 5;
       throw new Error('Invalid email or password');
     }
 
     const isPasswordValid = await this.verifyPassword(data.password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new Error('Invalid email or password');
+      // Record failed attempt
+      const attempt = await storage.recordLoginAttempt(normalizedEmail);
+      const showPasswordReset = attempt.attemptCount >= 5;
+      
+      const error = new Error('Invalid email or password') as any;
+      error.attemptCount = attempt.attemptCount;
+      error.showPasswordReset = showPasswordReset;
+      throw error;
     }
 
     if (!user.isEmailVerified) {
       throw new Error('Please verify your email address before logging in. Check your inbox for the verification link.');
     }
 
-    return user;
+    // Clear login attempts on successful login
+    await storage.resetLoginAttempts(normalizedEmail);
+
+    return { user };
   }
 
   async createPasswordResetToken(email: string): Promise<string> {

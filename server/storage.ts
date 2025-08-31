@@ -4,6 +4,7 @@ import {
   contentFilters,
   passwordResetTokens,
   emailVerificationTokens,
+  loginAttempts,
   type User,
   type UpsertUser,
   type Letter,
@@ -12,9 +13,10 @@ import {
   type InsertContentFilter,
   type PasswordResetToken,
   type EmailVerificationToken,
+  type LoginAttempt,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, lt } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -47,6 +49,12 @@ export interface IStorage {
   markEmailVerificationTokenUsed(tokenId: string): Promise<void>;
   getEmailVerificationTokensByUserId(userId: string): Promise<EmailVerificationToken[]>;
   deleteEmailVerificationTokensByUserId(userId: string): Promise<void>;
+  
+  // Login attempts tracking
+  getLoginAttempts(email: string): Promise<LoginAttempt | undefined>;
+  recordLoginAttempt(email: string): Promise<LoginAttempt>;
+  resetLoginAttempts(email: string): Promise<void>;
+  clearExpiredLoginAttempts(): Promise<void>;
   
   // Letter operations
   createLetter(letter: InsertLetter & { userId: string }): Promise<Letter>;
@@ -343,6 +351,64 @@ export class DatabaseStorage implements IStorage {
     return result.reduce((total, letter) => {
       return total + (letter.amount ? parseFloat(letter.amount) : 0);
     }, 0);
+  }
+
+  // Login attempts tracking
+  async getLoginAttempts(email: string): Promise<LoginAttempt | undefined> {
+    // Clean up expired attempts first
+    await this.clearExpiredLoginAttempts();
+    
+    const [attempt] = await db
+      .select()
+      .from(loginAttempts)
+      .where(eq(loginAttempts.email, email.toLowerCase()));
+    
+    return attempt;
+  }
+
+  async recordLoginAttempt(email: string): Promise<LoginAttempt> {
+    const normalizedEmail = email.toLowerCase();
+    const existing = await this.getLoginAttempts(normalizedEmail);
+    
+    if (existing) {
+      // Update existing record
+      const [updated] = await db
+        .update(loginAttempts)
+        .set({
+          attemptCount: (existing.attemptCount || 0) + 1,
+          lastAttemptAt: new Date(),
+        })
+        .where(eq(loginAttempts.email, normalizedEmail))
+        .returning();
+      return updated;
+    } else {
+      // Create new record
+      const [newAttempt] = await db
+        .insert(loginAttempts)
+        .values({
+          email: normalizedEmail,
+          attemptCount: 1,
+          lastAttemptAt: new Date(),
+          resetAt: new Date(Date.now() + 15 * 60 * 1000), // Reset after 15 minutes
+        })
+        .returning();
+      return newAttempt;
+    }
+  }
+
+  async resetLoginAttempts(email: string): Promise<void> {
+    await db
+      .delete(loginAttempts)
+      .where(eq(loginAttempts.email, email.toLowerCase()));
+  }
+
+  async clearExpiredLoginAttempts(): Promise<void> {
+    const now = new Date();
+    await db
+      .delete(loginAttempts)
+      .where(
+        lt(loginAttempts.resetAt, now)
+      );
   }
 }
 

@@ -214,25 +214,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const validatedData = loginSchema.parse(req.body);
-      const user = await authService.login(validatedData);
+      const result = await authService.login(validatedData);
       
       // Create session (compatible with existing session structure)
       (req.session as any).user = {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        id: result.user.id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
         authProvider: 'local',
       };
       
       res.json({
         message: 'Login successful',
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          isAdmin: user.isAdmin || false
+          id: result.user.id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          isAdmin: result.user.isAdmin || false
         },
         redirectTo: '/dashboard'
       });
@@ -250,7 +250,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors
         });
       }
-      res.status(401).json({ message: error.message || 'Invalid email or password' });
+      
+      // Include login attempt information in error response
+      const errorResponse: any = { 
+        message: error.message || 'Invalid email or password' 
+      };
+      
+      if (error.attemptCount) {
+        errorResponse.attemptCount = error.attemptCount;
+      }
+      
+      if (error.showPasswordReset) {
+        errorResponse.showPasswordReset = true;
+        errorResponse.message = `Invalid email or password. After ${error.attemptCount} failed attempts, you may want to reset your password.`;
+      }
+      
+      res.status(401).json(errorResponse);
     }
   });
 

@@ -25,6 +25,8 @@ function Router() {
   return (
     <Switch>
       {/* Public routes - always accessible */}
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/auth/login" component={Login} />
       <Route path="/auth/register" component={Register} />
       <Route path="/auth/forgot-password" component={ForgotPassword} />

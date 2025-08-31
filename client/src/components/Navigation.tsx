@@ -13,7 +13,7 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
   const [, navigate] = useLocation();
 
   const handleLogin = () => {
-    navigate("/auth/login");
+    navigate("/login");
   };
 
   const handleLogout = async () => {
@@ -23,16 +23,16 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
         credentials: "include",
       });
       
-      // Navigate to home page after successful logout (204 status)
+      // Navigate to login page after successful logout (204 status)
       if (response.ok) {
-        navigate("/");
+        navigate("/login");
       } else {
         throw new Error('Logout failed');
       }
     } catch (error) {
       console.error("Logout error:", error);
-      // Still navigate to home even if logout fails
-      navigate("/");
+      // Still navigate to login even if logout fails
+      navigate("/login");
     }
   };
 
@@ -97,7 +97,7 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
                 <Button variant="ghost" onClick={handleLogin}>
                   Sign In
                 </Button>
-                <Button onClick={() => window.location.href = "/auth/register"}>
+                <Button onClick={() => navigate("/register")}>
                   Get Started
                 </Button>
               </>

@@ -23,16 +23,16 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
         credentials: "include",
       });
       
-      // Navigate to login page after successful logout (204 status)
+      // Navigate to home page after successful logout (204 status)
       if (response.ok) {
-        navigate("/auth/login");
+        navigate("/");
       } else {
         throw new Error('Logout failed');
       }
     } catch (error) {
       console.error("Logout error:", error);
-      // Still navigate to login even if logout fails
-      navigate("/auth/login");
+      // Still navigate to home even if logout fails
+      navigate("/");
     }
   };
 

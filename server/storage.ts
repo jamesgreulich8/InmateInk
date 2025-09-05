@@ -16,7 +16,7 @@ import {
   type LoginAttempt,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, count, lt } from "drizzle-orm";
+import { eq, and, desc, count, lt, isNotNull } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -407,7 +407,10 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(loginAttempts)
       .where(
-        lt(loginAttempts.resetAt, now)
+        and(
+          isNotNull(loginAttempts.resetAt),
+          lt(loginAttempts.resetAt, now)
+        )
       );
   }
 }

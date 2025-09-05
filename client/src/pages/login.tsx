@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { loginSchema, type LoginData } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -33,13 +33,19 @@ export default function Login() {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Invalidate auth queries to refresh user state
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
       toast({
         title: "Success",
         description: "Login successful! Redirecting to dashboard...",
       });
-      // Refresh the page to update auth state
-      window.location.href = "/dashboard";
+      
+      // Small delay to allow toast to show and auth state to update
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 800);
     },
     onError: (error: any) => {
       console.error('Login error details:', error);

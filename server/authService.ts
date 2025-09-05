@@ -86,7 +86,7 @@ export class AuthService {
       const attempt = await storage.recordLoginAttempt(normalizedEmail);
       await this.verifyPassword(data.password, dummyHash);
       
-      const showPasswordReset = attempt.attemptCount >= 5;
+      const showPasswordReset = (attempt.attemptCount || 0) >= 5;
       throw new Error('Invalid email or password');
     }
 
@@ -94,10 +94,10 @@ export class AuthService {
     if (!isPasswordValid) {
       // Record failed attempt
       const attempt = await storage.recordLoginAttempt(normalizedEmail);
-      const showPasswordReset = attempt.attemptCount >= 5;
+      const showPasswordReset = (attempt.attemptCount || 0) >= 5;
       
       const error = new Error('Invalid email or password') as any;
-      error.attemptCount = attempt.attemptCount;
+      error.attemptCount = attempt.attemptCount || 0;
       error.showPasswordReset = showPasswordReset;
       throw error;
     }

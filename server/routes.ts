@@ -1057,18 +1057,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SPA fallback — must come after API routes
-  app.get('*', (req, res) => {
-    // Only serve the SPA for non-API routes
-    if (!req.path.startsWith('/api')) {
-      // In development, let Vite handle this
-      // In production, this would serve the built index.html
-      res.status(200).json({ 
-        message: 'SPA fallback - this route would serve index.html in production' 
-      });
-    } else {
-      res.status(404).json({ message: 'API endpoint not found' });
-    }
+  // API 404 handler - only for API routes
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ message: 'API endpoint not found' });
   });
 
   const httpServer = createServer(app);

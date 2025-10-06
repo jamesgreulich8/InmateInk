@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { Mail, Settings, LogOut } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface NavigationProps {
   authenticated?: boolean;
@@ -23,15 +24,19 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
         credentials: "include",
       });
       
-      // Navigate to login page after successful logout (204 status)
       if (response.ok) {
+        // Clear all cached data from React Query
+        queryClient.clear();
+        
+        // Navigate to login page after successful logout
         navigate("/login");
       } else {
         throw new Error('Logout failed');
       }
     } catch (error) {
       console.error("Logout error:", error);
-      // Still navigate to login even if logout fails
+      // Clear cache and navigate to login even if logout fails
+      queryClient.clear();
       navigate("/login");
     }
   };

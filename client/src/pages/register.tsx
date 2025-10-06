@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, CheckCircle } from "lucide-react";
@@ -28,6 +29,8 @@ export default function Register() {
       email: "",
       password: "",
       confirmPassword: "",
+      acceptedTerms: false,
+      acceptedPrivacy: false,
     },
   });
 
@@ -250,6 +253,64 @@ export default function Register() {
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-4 border-t pt-4">
+                  <FormField
+                    control={form.control}
+                    name="acceptedTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="checkbox-terms"
+                            disabled={registerMutation.isPending}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm font-normal cursor-pointer">
+                            I agree to the{" "}
+                            <Link href="/terms">
+                              <span className="text-blue-600 hover:underline" data-testid="link-terms">
+                                Terms of Service
+                              </span>
+                            </Link>
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="acceptedPrivacy"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="checkbox-privacy"
+                            disabled={registerMutation.isPending}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm font-normal cursor-pointer">
+                            I agree to the{" "}
+                            <Link href="/privacy">
+                              <span className="text-blue-600 hover:underline" data-testid="link-privacy">
+                                Privacy Policy
+                              </span>
+                            </Link>
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <Button
                   type="submit"

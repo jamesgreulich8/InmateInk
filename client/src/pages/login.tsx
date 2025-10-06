@@ -151,9 +151,9 @@ export default function Login() {
                   <Alert className="border-amber-200 bg-amber-50" data-testid="alert-password-reset">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                     <AlertDescription className="text-amber-800">
-                      <strong>Too many failed attempts ({attemptCount}/5)</strong>
+                      <strong>Too many failed attempts</strong>
                       <br />
-                      Consider resetting your password if you've forgotten it.
+                      After 3 failed login attempts, you may want to reset your password.
                       <div className="mt-2">
                         <Link href="/auth/forgot-password">
                           <Button 

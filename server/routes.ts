@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (error.showPasswordReset) {
         errorResponse.showPasswordReset = true;
-        errorResponse.message = `Invalid email or password. After ${error.attemptCount} failed attempts, you may want to reset your password.`;
+        errorResponse.message = `Invalid email or password. After 3 failed attempts, you may want to reset your password.`;
       }
       
       res.status(401).json(errorResponse);

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import rateLimit from "express-rate-limit";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -15,6 +16,12 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-07-30.basil",
 });
+
+// Enforce webhook secret presence in production
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+if (process.env.NODE_ENV === 'production' && !webhookSecret) {
+  throw new Error('Missing required Stripe secret: STRIPE_WEBHOOK_SECRET');
+}
 
 // Add capitalization utility function
 const capitalizeNames = (name: string): string => {
@@ -161,6 +168,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Fine-grained rate limits for sensitive endpoints
+  const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
+  const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -182,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Local authentication routes
-  app.post('/api/auth/register', async (req, res) => {
+  app.post('/api/auth/register', authLimiter, async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
       const { user, verificationToken } = await authService.register(validatedData);
@@ -211,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', authLimiter, async (req, res) => {
     try {
       const validatedData = loginSchema.parse(req.body);
       const result = await authService.login(validatedData);
@@ -269,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/logout', (req, res) => {
+  app.post('/api/auth/logout', authLimiter, (req, res) => {
     req.session.destroy((err) => {
       if (err) {
         console.error('Logout error:', err);
@@ -279,13 +290,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
       });
       res.status(204).end();
     });
   });
 
-  app.post('/api/auth/request-password-reset', async (req, res) => {
+  app.post('/api/auth/request-password-reset', authLimiter, async (req, res) => {
     try {
       const validatedData = resetPasswordRequestSchema.parse(req.body);
       await authService.createPasswordResetToken(validatedData.email);
@@ -300,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/reset-password', async (req, res) => {
+  app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     try {
       const { token, password, confirmPassword } = req.body;
       
@@ -330,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/auth/verify-email', async (req, res) => {
+  app.get('/api/auth/verify-email', authLimiter, async (req, res) => {
     try {
       const { token } = req.query;
       if (!token || typeof token !== 'string') {
@@ -353,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/resend-verification', async (req, res) => {
+  app.post('/api/auth/resend-verification', authLimiter, async (req, res) => {
     try {
       const { email } = req.body;
       if (!email) {
@@ -369,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe subscription routes
-  app.post('/api/create-subscription', isAuthenticated, async (req: any, res) => {
+  app.post('/api/create-subscription', payLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req);
       if (!userId) {
@@ -381,7 +392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { type } = req.body;
+      const bodySchema = z.object({ type: z.enum(['subscription']) });
+      const { type } = bodySchema.parse(req.body);
 
       // Create or retrieve Stripe customer
       let customerId = user.stripeCustomerId;
@@ -430,18 +442,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe webhook handler
-  app.post('/api/stripe-webhook', async (req, res) => {
+  app.post('/api/stripe-webhook', async (req: any, res) => {
     const sig = req.headers['stripe-signature'] as string;
     let event;
 
     try {
+      const body = req.rawBody || req.body;
       event = stripe.webhooks.constructEvent(
-        req.body,
+        body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
+        webhookSecret || 'whsec_test'
       );
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      console.error('Webhook signature verification failed');
       return res.status(400).send(`Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
@@ -515,13 +528,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ received: true });
     } catch (error) {
-      console.error('Error handling webhook:', error);
+      console.error('Error handling webhook');
       res.status(500).json({ error: 'Webhook handler failed' });
     }
   });
 
   // One-time payment for single letters
-  app.post('/api/create-payment', isAuthenticated, async (req: any, res) => {
+  app.post('/api/create-payment', payLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req);
       if (!userId) {
@@ -556,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: 'Single Letter Service',
                 description: 'Send one letter to your loved one'
               },
-              unit_amount: 0, // $0.00 for testing
+              unit_amount: 299, // $2.99
             },
             quantity: 1,
           },
@@ -572,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ sessionId: session.id });
     } catch (error) {
-      console.error('Payment creation error:', error);
+      console.error('Payment creation error');
       res.status(500).json({ message: 'Failed to create payment session' });
     }
   });
@@ -639,13 +652,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await emailService.sendStatusUpdate(user, letter, letter.status);
         await emailService.sendNewLetterNotification(user, letter);
       } catch (emailError) {
-        console.error('Failed to send emails:', emailError);
+        console.error('Failed to send emails');
         // Don't fail the request if email fails
       }
 
       res.json(letter);
     } catch (error) {
-      console.error("Error creating letter:", error);
+      console.error("Error creating letter");
       res.status(500).json({ message: "Failed to create letter" });
     }
   });
@@ -659,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const letters = await storage.getLettersByUserId(userId);
       res.json(letters);
     } catch (error) {
-      console.error("Error fetching letters:", error);
+      console.error("Error fetching letters");
       res.status(500).json({ message: "Failed to fetch letters" });
     }
   });
@@ -686,17 +699,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(letter);
     } catch (error) {
-      console.error("Error fetching letter:", error);
+      console.error("Error fetching letter");
       res.status(500).json({ message: "Failed to fetch letter" });
     }
   });
 
   // Payment routes
-  app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
+  app.post("/api/create-payment-intent", payLimiter, isAuthenticated, async (req: any, res) => {
     try {
-      const { amount } = req.body;
+      const bodySchema = z.object({ amount: z.number().int().positive().max(100_00) });
+      const { amount } = bodySchema.parse(req.body);
+      // Expect amount in cents, validate range to prevent abuse
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
+        amount,
         currency: "usd",
         metadata: {
           userId: getUserId(req),
@@ -755,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: [{
           price_data: {
             currency: 'usd',
-            product: 'prod_monthly_letters',
+            product: process.env.STRIPE_PRODUCT_MONTHLY || 'prod_monthly_letters',
             unit_amount: 999, // $9.99
             recurring: {
               interval: 'month'
@@ -810,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         revenue: revenue,
       });
     } catch (error) {
-      console.error("Error fetching admin stats:", error);
+      console.error("Error fetching admin stats");
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
@@ -830,7 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const letters = await storage.getAllLetters();
       res.json(letters);
     } catch (error) {
-      console.error("Error fetching admin letters:", error);
+      console.error("Error fetching admin letters");
       res.status(500).json({ message: "Failed to fetch letters" });
     }
   });
@@ -857,7 +872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(filterDetails);
     } catch (error) {
-      console.error("Error fetching content filter details:", error);
+      console.error("Error fetching content filter details");
       res.status(500).json({ message: "Failed to fetch content filter details" });
     }
   });
@@ -882,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await emailService.sendWelcomeEmail(user);
       res.json({ message: "Test email sent successfully" });
     } catch (error) {
-      console.error("Error sending test email:", error);
+      console.error("Error sending test email");
       res.status(500).json({ message: "Failed to send test email", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
@@ -911,13 +926,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await emailService.sendStatusUpdate(letterUser, letter, status, rejectionReason);
         }
       } catch (emailError) {
-        console.error('Failed to send status update email:', emailError);
+        console.error('Failed to send status update email');
         // Don't fail the request if email fails
       }
 
       res.json(letter);
     } catch (error) {
-      console.error("Error updating letter status:", error);
+      console.error("Error updating letter status");
       res.status(500).json({ message: "Failed to update letter status" });
     }
   });
@@ -961,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'text/html');
       res.send(previewHtml);
     } catch (error) {
-      console.error("Error generating letter preview:", error);
+      console.error("Error generating letter preview");
       res.status(500).json({ message: "Failed to generate preview" });
     }
   });
@@ -1006,7 +1021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename="letter-${letter.id.slice(-8)}.pdf"`);
       res.send(pdfBuffer);
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error generating PDF");
       res.status(500).json({ message: "Failed to generate PDF" });
     }
   });
@@ -1052,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'text/html');
       res.send(previewHtml);
     } catch (error) {
-      console.error("Error generating preview:", error);
+      console.error("Error generating preview");
       res.status(500).json({ message: "Failed to generate preview" });
     }
   });

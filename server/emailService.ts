@@ -9,7 +9,9 @@ interface EmailNotification {
 
 // Create reusable transporter object using GMAIL SMTP transport
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465,
+  secure: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
@@ -115,7 +117,7 @@ const emailService = {
 
   // Send new letter notification to admin
   async sendNewLetterNotification(user: User, letter: Letter) {
-    const adminEmail = process.env.GMAIL_USER; // Send to the Gmail account owner
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_USER; // Send to configured admin
     
     const subject = `New Letter Submitted - #${letter.id.slice(-8)}`;
     
@@ -299,7 +301,7 @@ ${letter.content}
     if (!user.email) return;
 
     // Always use jail-mail.com for production email links
-    const baseUrl = 'https://jail-mail.com';
+    const baseUrl = process.env.APP_PUBLIC_URL || 'https://jail-mail.com';
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
     const subject = 'Verify Your Email Address - Inmate Mail Service';
     
@@ -355,7 +357,7 @@ ${letter.content}
     if (!user.email) return;
 
     // Always use jail-mail.com for production email links
-    const baseUrl = 'https://jail-mail.com';
+    const baseUrl = process.env.APP_PUBLIC_URL || 'https://jail-mail.com';
     const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
     const subject = 'Reset Your Password - Inmate Mail Service';
     
@@ -416,10 +418,10 @@ ${letter.content}
         html: notification.html,
       });
 
-      console.log('Email sent successfully:', info.messageId);
+      console.log('Email sent successfully');
       return info;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('Failed to send email');
       throw error;
     }
   },
@@ -431,7 +433,7 @@ ${letter.content}
       console.log('Email service connection verified');
       return true;
     } catch (error) {
-      console.error('Email service connection failed:', error);
+      console.error('Email service connection failed');
       return false;
     }
   },

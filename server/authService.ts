@@ -16,7 +16,7 @@ const capitalizeNames = (name: string): string => {
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 12;
-  private static readonly TOKEN_EXPIRY_MINUTES = 30; // Short TTL for security
+  private static readonly TOKEN_EXPIRY_MINUTES = 24 * 60; // 24 hours to match email copy
 
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, AuthService.SALT_ROUNDS);
@@ -77,7 +77,8 @@ export class AuthService {
     const normalizedEmail = data.email.toLowerCase().trim();
     
     // Always hash the password to prevent timing attacks
-    const dummyHash = '$2b$12$dummy.hash.to.prevent.timing.attacks.abcdefghijklmnopqrstuvwxyz';
+    // Valid bcrypt hash for a dummy password to mitigate timing attacks
+    const dummyHash = '$2b$12$M35oGrmLhXkX1Werix4uXO63gJMCzsgWSZTFR9jyuZC5XKd/UMEUC';
     
     const user = await storage.getUserByEmail(normalizedEmail);
     

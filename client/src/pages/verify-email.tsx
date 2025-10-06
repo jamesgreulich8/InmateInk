@@ -15,7 +15,7 @@ function ResendVerificationButton() {
 
   const resendMutation = useMutation({
     mutationFn: async (email: string) => {
-      return await apiRequest("/api/auth/resend-verification", "POST", { email });
+      return await apiRequest("POST", "/api/auth/resend-verification", { email });
     },
     onSuccess: () => {
       toast({

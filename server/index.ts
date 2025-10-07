@@ -3,6 +3,7 @@ import helmet from "helmet";
 import type { RequestHandler } from "express";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
+// @ts-expect-error csurf has no types
 import csrf from "csurf";
 import { setupVite, serveStatic, log } from "./vite";
 import emailService from "./emailService";

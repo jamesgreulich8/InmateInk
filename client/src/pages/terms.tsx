@@ -26,7 +26,7 @@ export default function Terms() {
         <Card>
           <CardContent className="prose max-w-none p-8">
             <p className="text-lg text-gray-700 mb-6">
-              Welcome to Inmate Mail Service, operated by Cosmic LLC ("we," "our," "us"). 
+              Welcome to Jail Mail, operated by Cosmic LLC ("we," "our," "us"). 
               By using our service, you ("you," "user," "customer") agree to the following terms:
             </p>
 
@@ -67,7 +67,7 @@ export default function Terms() {
 
             <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">6. Indemnification</h2>
             <p className="text-gray-700 mb-4">
-              You agree to indemnify and hold Cosmic LLC (Inmate Mail Service) harmless from any claims, 
+              You agree to indemnify and hold Cosmic LLC (Jail Mail) harmless from any claims, 
               damages, or legal issues arising from your use of our service or your submitted content.
             </p>
 

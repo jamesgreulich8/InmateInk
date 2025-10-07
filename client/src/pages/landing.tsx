@@ -222,9 +222,9 @@ export default function Landing() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">IMS</span>
+                  <span className="text-white font-bold text-sm">JM</span>
                 </div>
-                <span className="ml-3 text-xl font-semibold text-slate-900">Inmate Mail Service</span>
+                <span className="ml-3 text-xl font-semibold text-slate-900">Jail Mail</span>
               </div>
               <p className="mt-4 text-slate-600">
                 Professional letter delivery service connecting families with their incarcerated loved ones through secure, reliable mail service.
@@ -256,7 +256,7 @@ export default function Landing() {
           
           <div className="mt-8 border-t border-slate-200 pt-8">
             <p className="text-base text-slate-500 text-center">
-              © 2023 Inmate Mail Service. All rights reserved.
+              © 2023 Jail Mail. All rights reserved.
             </p>
           </div>
         </div>

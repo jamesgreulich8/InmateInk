@@ -17,6 +17,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count, lt, isNotNull } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 
 // Interface for storage operations
 export interface IStorage {
@@ -163,7 +164,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userData.id ?? uuidv4(),
+        ...userData,
+      })
+      .returning();
     return user;
   }
 
@@ -191,7 +198,7 @@ export class DatabaseStorage implements IStorage {
 
   // Password reset tokens
   async createPasswordResetToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void> {
-    await db.insert(passwordResetTokens).values(data);
+    await db.insert(passwordResetTokens).values({ id: uuidv4(), ...data });
   }
 
   async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
@@ -221,7 +228,7 @@ export class DatabaseStorage implements IStorage {
 
   // Email verification tokens
   async createEmailVerificationToken(data: { userId: string; token: string; expiresAt: Date; used: boolean }): Promise<void> {
-    await db.insert(emailVerificationTokens).values(data);
+    await db.insert(emailVerificationTokens).values({ id: uuidv4(), ...data });
   }
 
   async getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined> {
@@ -252,7 +259,7 @@ export class DatabaseStorage implements IStorage {
 
   // Letter operations
   async createLetter(letter: InsertLetter & { userId: string }): Promise<Letter> {
-    const [newLetter] = await db.insert(letters).values(letter).returning();
+    const [newLetter] = await db.insert(letters).values({ id: uuidv4(), ...letter }).returning();
     return newLetter;
   }
 
@@ -296,7 +303,7 @@ export class DatabaseStorage implements IStorage {
 
   // Content filter operations
   async createContentFilter(filter: InsertContentFilter): Promise<ContentFilter> {
-    const [newFilter] = await db.insert(contentFilters).values(filter).returning();
+    const [newFilter] = await db.insert(contentFilters).values({ id: uuidv4(), ...filter }).returning();
     return newFilter;
   }
 
@@ -386,6 +393,7 @@ export class DatabaseStorage implements IStorage {
       const [newAttempt] = await db
         .insert(loginAttempts)
         .values({
+          id: uuidv4(),
           email: normalizedEmail,
           attemptCount: 1,
           lastAttemptAt: new Date(),

@@ -9,12 +9,12 @@ import { generateLetterPDF, generateLetterPreview } from './pdfGenerator';
 import { authService } from './authService';
 import { z } from "zod";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+// Lazily initialize Stripe only if configured, so non-payment routes (e.g., registration) work without Stripe
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  // Use the SDK's pinned default API version by omitting apiVersion for safety
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-07-30.basil",
-});
 
 // Add capitalization utility function
 const capitalizeNames = (name: string): string => {
@@ -371,6 +371,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe subscription routes
   app.post('/api/create-subscription', isAuthenticated, async (req: any, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ message: 'Payments are temporarily unavailable. Please try again later.' });
+      }
       const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -431,6 +434,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhook handler
   app.post('/api/stripe-webhook', async (req, res) => {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured' });
+    }
     const sig = req.headers['stripe-signature'] as string;
     let event;
 
@@ -523,6 +529,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // One-time payment for single letters
   app.post('/api/create-payment', isAuthenticated, async (req: any, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ message: 'Payments are temporarily unavailable. Please try again later.' });
+      }
       const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -694,6 +703,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment routes
   app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ message: 'Payments are temporarily unavailable. Please try again later.' });
+      }
       const { amount } = req.body;
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
@@ -713,6 +725,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ error: { message: 'Stripe is not configured' } });
+      }
       const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });

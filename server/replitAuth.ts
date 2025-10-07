@@ -8,9 +8,7 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
-}
+// Do not throw at import time; we'll gracefully degrade in setupAuth if env vars are missing
 
 const getOidcConfig = memoize(
   async () => {
@@ -69,7 +67,29 @@ async function upsertUser(
 
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
-  app.use(getSession());
+  // Always configure a session; fall back to in-memory store if DATABASE_URL/PG store is unavailable
+  if (process.env.DATABASE_URL) {
+    app.use(getSession());
+  } else {
+    const devSecret = process.env.SESSION_SECRET || "dev-session-secret";
+    app.use(session({
+      secret: devSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      },
+    }));
+  }
+
+  // If Replit Auth env vars are missing, skip OIDC setup and rely on local auth
+  if (!process.env.REPLIT_DOMAINS) {
+    return;
+  }
+
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -85,8 +105,7 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  for (const domain of process.env.REPLIT_DOMAINS!.split(",")) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -138,6 +157,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   }
 
   // Check for Replit Auth authentication
+  if (typeof (req as any).isAuthenticated !== 'function') {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }

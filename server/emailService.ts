@@ -9,7 +9,9 @@ interface EmailNotification {
 
 // Create reusable transporter object using GMAIL SMTP transport
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465,
+  secure: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
@@ -99,7 +101,7 @@ const emailService = {
         </div>
 
         <div style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 20px;">
-          <p>This is an automated message from your Inmate Mail Service.<br>
+          <p>This is an automated message from Jail Mail.<br>
           If you have questions, please contact support.</p>
         </div>
       </body>
@@ -115,7 +117,7 @@ const emailService = {
 
   // Send new letter notification to admin
   async sendNewLetterNotification(user: User, letter: Letter) {
-    const adminEmail = process.env.GMAIL_USER; // Send to the Gmail account owner
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_USER; // Send to configured admin
     
     const subject = `New Letter Submitted - #${letter.id.slice(-8)}`;
     
@@ -193,7 +195,7 @@ ${letter.content}
         </div>
 
         <div style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 20px;">
-          <p>This is an automated notification from your Inmate Mail Service admin panel.</p>
+          <p>This is an automated notification from your Jail Mail admin panel.</p>
         </div>
       </body>
       </html>
@@ -210,7 +212,7 @@ ${letter.content}
   async sendWelcomeEmail(user: User) {
     if (!user.email) return;
 
-    const subject = 'Welcome to Inmate Mail Service';
+    const subject = 'Welcome to Jail Mail';
     
     const html = `
       <!DOCTYPE html>
@@ -218,11 +220,11 @@ ${letter.content}
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to Inmate Mail Service</title>
+        <title>Welcome to Jail Mail</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #111827; margin: 0; font-size: 28px;">Welcome to Inmate Mail Service</h1>
+          <h1 style="color: #111827; margin: 0; font-size: 28px;">Welcome to Jail Mail</h1>
           <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Connecting you with your loved ones</p>
         </div>
 
@@ -270,7 +272,7 @@ ${letter.content}
   async sendSubscriptionConfirmation(user: any) {
     await this.sendEmail({
       to: user.email,
-      subject: "Subscription Confirmed - Inmate Mail Service",
+      subject: "Subscription Confirmed - Jail Mail",
       html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #16a34a;">Subscription Confirmed!</h2>
         <p>Dear ${user.firstName} ${user.lastName}, your monthly subscription is now active.</p>
@@ -299,9 +301,9 @@ ${letter.content}
     if (!user.email) return;
 
     // Always use jail-mail.com for production email links
-    const baseUrl = 'https://jail-mail.com';
+    const baseUrl = process.env.APP_PUBLIC_URL || 'https://jail-mail.com';
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
-    const subject = 'Verify Your Email Address - Inmate Mail Service';
+    const subject = 'Verify Your Email Address - Jail Mail';
     
     const html = `
       <!DOCTYPE html>
@@ -314,12 +316,12 @@ ${letter.content}
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #111827; margin: 0; font-size: 28px;">Verify Your Email Address</h1>
-          <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Inmate Mail Service</p>
+          <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Jail Mail</p>
         </div>
 
         <div style="background: #F9FAFB; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
           <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${user.firstName || 'there'},</p>
-          <p style="margin: 0 0 16px 0; font-size: 16px;">Thank you for signing up for Inmate Mail Service. To get started, please verify your email address by clicking the button below:</p>
+          <p style="margin: 0 0 16px 0; font-size: 16px;">Thank you for signing up for Jail Mail. To get started, please verify your email address by clicking the button below:</p>
         </div>
 
         <div style="text-align: center; padding: 20px 0;">
@@ -355,9 +357,9 @@ ${letter.content}
     if (!user.email) return;
 
     // Always use jail-mail.com for production email links
-    const baseUrl = 'https://jail-mail.com';
+    const baseUrl = process.env.APP_PUBLIC_URL || 'https://jail-mail.com';
     const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
-    const subject = 'Reset Your Password - Inmate Mail Service';
+    const subject = 'Reset Your Password - Jail Mail';
     
     const html = `
       <!DOCTYPE html>
@@ -370,7 +372,7 @@ ${letter.content}
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #111827; margin: 0; font-size: 28px;">Reset Your Password</h1>
-          <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Inmate Mail Service</p>
+          <p style="color: #6B7280; margin: 8px 0 0 0; font-size: 16px;">Jail Mail</p>
         </div>
 
         <div style="background: #F9FAFB; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
@@ -410,16 +412,16 @@ ${letter.content}
   async sendEmail(notification: EmailNotification) {
     try {
       const info = await transporter.sendMail({
-        from: `"Inmate Mail Service" <${process.env.GMAIL_USER}>`,
+        from: `"Jail Mail" <${process.env.GMAIL_USER}>`,
         to: notification.to,
         subject: notification.subject,
         html: notification.html,
       });
 
-      console.log('Email sent successfully:', info.messageId);
+      console.log('Email sent successfully');
       return info;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('Failed to send email');
       throw error;
     }
   },
@@ -431,7 +433,7 @@ ${letter.content}
       console.log('Email service connection verified');
       return true;
     } catch (error) {
-      console.error('Email service connection failed:', error);
+      console.error('Email service connection failed');
       return false;
     }
   },

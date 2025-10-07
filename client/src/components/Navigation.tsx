@@ -49,10 +49,10 @@ export function Navigation({ authenticated = false, admin = false }: NavigationP
             <Link href={authenticated ? "/dashboard" : "/"}>
               <div className="flex-shrink-0 flex items-center cursor-pointer">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">IMS</span>
+                  <span className="text-white font-bold text-sm">JM</span>
                 </div>
                 <span className="ml-3 text-xl font-semibold text-slate-900">
-                  {admin ? "Admin Panel" : "Inmate Mail Service"}
+                  {admin ? "Admin Panel" : "Jail Mail"}
                 </span>
               </div>
             </Link>

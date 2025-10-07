@@ -137,7 +137,7 @@ export default function Checkout() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Amount must be in cents for Stripe
+    // Amount is in cents for Stripe (validated on server)
     apiRequest("POST", "/api/create-payment-intent", { amount: 299 })
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to create PaymentIntent");

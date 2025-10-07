@@ -195,7 +195,7 @@ export default function VerifyEmail() {
               </div>
               <CardTitle className="text-green-900">Email Successfully Verified!</CardTitle>
               <CardDescription>
-                Congratulations! You have successfully verified your email address. Your account is now active and you can sign in to start using the Inmate Mail Service.
+                Congratulations! You have successfully verified your email address. Your account is now active and you can sign in to start using Jail Mail.
               </CardDescription>
             </CardHeader>
             <CardContent>
